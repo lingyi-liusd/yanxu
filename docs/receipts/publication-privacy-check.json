@@ -1,0 +1,22 @@
+{
+  "scope": "Public source, Git history, screenshot inspection and desktop archive file names/bytes; pattern checks are not an independent security audit.",
+  "personal_paths_found_in_original_packages": true,
+  "correction": "Old assets withdrawn; bundled documentation replaced, Python caches removed, manifests regenerated, Mac ad-hoc signature renewed.",
+  "model_calls": 0,
+  "files": [
+    {
+      "name": "yanxu-2026.10.03-beta.16-macos-arm64.zip",
+      "sha256": "6fa91acc985188961ff74afd59dca4b02cea8541fd2e56b2373c464bad38808c",
+      "zip_crc": "PASS",
+      "personal_path_and_private_chat_url_scan": "PASS",
+      "credential_database_log_and_python_cache_filename_scan": "PASS"
+    },
+    {
+      "name": "yanxu-2026.10.03-beta.16-windows-x64.zip",
+      "sha256": "84d873e708fc88ecf7c6fe9f41ec96537b619d0d0fe231f3a598aeb882d299c8",
+      "zip_crc": "PASS",
+      "personal_path_and_private_chat_url_scan": "PASS",
+      "credential_database_log_and_python_cache_filename_scan": "PASS"
+    }
+  ]
+}

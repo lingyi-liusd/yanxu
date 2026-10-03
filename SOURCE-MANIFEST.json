@@ -36,8 +36,8 @@
     "docs/ARCHITECTURE.md": "8e8f2cf8cef2611453bf62d043144f6515b93d48d2399b4b7147e53fbb57f9b0",
     "docs/GETTING-STARTED.md": "4d702c3b074e179cc63540ebdefa58232dead23aaadf1ae9d36e0dfd9188f831",
     "docs/PRODUCT-STORY.md": "e703703192650bff53fe79e70288556ef26eedbb7af2004cea67de5a9f54aa85",
-    "docs/RELEASE-HANDOFF.md": "68e75fc070fcf2c62d130b71a2bd274b4a3411b64a768fcfddf27df057da0797",
-    "docs/VALIDATION.md": "91be2da60a919237386942b69734f485e4060384ce0ac392bae08d3b302ea9df",
+    "docs/RELEASE-HANDOFF.md": "77eb4db9664e1b72e46015fc941ccd8381d033f9d727e44baa0b683e0b9f9f97",
+    "docs/VALIDATION.md": "c4a7120959c227e954fd8d8200be8b59319049932635afbe55b6acc70f53fc19",
     "docs/images/project.jpg": "dc90cf47bf2c9df08099f87cdbc961dc8ab09101cb40240485223cf47659d4ea",
     "docs/images/results.jpg": "5e3590b110c455540abe517bc498af50e1f08674f74031183782fc87597f4f1e",
     "docs/images/today-desktop.png": "871740a809a66fe765ace32562be08e78a51379b53926905c53bfea57b00f158",
@@ -140,7 +140,9 @@
     "vendor/README.md": "b1272bf8f30fd876c4fa5c82cccdab438d02844f4d0e54865c1cb7d1cf5dd27e",
     "vendor/pypdf-6.19.0-py3-none-any.whl": "7e5d6e730e7dae87d560a2cee218b852f6498c8be61966f3cd02ead971e48d14",
     "vendor/typing_extensions-4.15.0-py3-none-any.whl": "f0fa19c6845758ab08074a0cfa8b7aecb71c999ca73d62883bc25cc018c4e548",
-    "workspace_registry.py": "8e81387c15b97d83121bcd4ab3a0abaf9bc7f610060d83518948389f41371473"
+    "workspace_registry.py": "8e81387c15b97d83121bcd4ab3a0abaf9bc7f610060d83518948389f41371473",
+    "docs/receipts/public-package-self-check.json": "e44a1ce30374aebbf97d05c2ec4b3f86139f33fcc0e115408d71500e6a63b5d0",
+    "docs/receipts/publication-privacy-check.json": "d9500575a804c216cd6454c085a66226b613cfafc21c759d50a908d0fd696717"
   },
   "acceptance": "See docs/VALIDATION.md. Native, model and user-benefit gates remain separate."
 }

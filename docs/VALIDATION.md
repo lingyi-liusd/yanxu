@@ -27,6 +27,15 @@
 
 使用 Python 3.13 和 Node 22，运行 `python3 scripts/verify_release.py`。测试资料与目录隔离，真实模型调用为零。合成界面使用 `python3 scripts/start_demo.py`，所有示例记录明确标为人工合成。
 
-桌面 ZIP 沿用原 beta.16 字节和已绑定的摘要。包内使用指南保留当时的内测记录，当前公开使用步骤以仓库 `docs/GETTING-STARTED.md` 与 Release 附件指南为准。源码、包完整性、原生安装、模型回包、用户收益和科学结论分别判断。
+桌面 ZIP 已做公开分发隐私清理：替换旧文档、移除 Python 缓存、重生成 manifest 和 Mac ad-hoc 签名；不再沿用原 ZIP 字节。清理后的 Mac 离线自检 PASS，绑定新文件摘要；新 ZIP CRC 与隐私路径检查 PASS。原桌面回执只适用于原包。当前步骤以仓库与 Release 的双语指南为准。源码、包完整性、原生安装、模型回包、用户收益和科学结论分别判断。
 
 CI 状态以 GitHub 实际运行记录为准。工作流文件存在不表示已通过。
+
+
+## 公开附件隐私修正 / Public asset privacy correction
+
+首次上传的旧安装包验收文档包含本机目录路径；发现后已撤下旧附件，替换公开文档、移除缓存并重新打包。未发现账号文件、令牌、个人数据库或真实项目资料。此前公开的目录路径不能保证从已下载副本中撤回。
+
+The initial desktop assets contained local directory paths in historical acceptance documentation. Those assets were withdrawn. Public documents replaced the historical guides, Python caches were removed, manifests were regenerated and the Mac app was signed again. The sanitized Mac offline self-check passed against its new file digest. Both replacement archives passed CRC and targeted privacy checks. Old receipts apply only to the original packages. Previously downloaded copies cannot be recalled.
+
+See [new offline receipt](receipts/public-package-self-check.json) and [privacy-check scope](receipts/publication-privacy-check.json). Automated pattern scans and screenshot inspection are bounded checks, not an independent security audit.
