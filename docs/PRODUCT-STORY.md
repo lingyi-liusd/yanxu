@@ -50,3 +50,54 @@
 - 提供 macOS Apple Silicon 与 Windows x64 测试包、隔离示例和自动回归；Windows 原生运行及长期用户收益仍待验证。
 
 使用时按实际参与程度改写“设计 / 实现 / 主导”，如面试被问到 AI 辅助开发，应如实说明开发和验证方式。公开仓库链接、演示截图与可运行示例是作品入口，不用虚构用户数或效率提升百分比。
+
+---
+
+# English · Product story and portfolio
+
+## The problem and intended users
+
+Resuming a long-running AI-assisted project requires recovering its goal, last action, deliverables, open questions and next step. Conversations, files and task lists serve different purposes; their records easily drift apart. Yanxu explores a shared, traceable project record for people and agents.
+
+It is intended for individuals working on research, software, design and writing. The core path is: establish a goal → define an action → execute and register work → inspect sources → resume after an interruption. Basic project management works without AI.
+
+## Three design decisions
+
+1. **Show less, retain traceability.** Today focuses on the current record, a necessary reminder and one next action. Original records, versions, limitations and handoffs are available on demand.
+2. **Keep human decisions and agent permissions explicit.** Model suggestions, local reading, sending source text and action authorization are separate. Significant changes of direction or scope have human review entry points.
+3. **Separate delivery from confidence.** A finished task may have a failed or unknown result. Results bind to source versions; independent verification is recorded separately.
+
+## Walk through the demo
+
+Run `python3 scripts/start_demo.py` and select “示例 · 个人作品发布” (sample portfolio release). All records are synthetic; no real model is called.
+
+1. Today: inspect the current task and next step, then open the original record.
+2. Project status: find the goal, stages and recent changes.
+3. Actions / Results and evidence: inspect the action contract and versioned source behind a `PARTIAL / UNVERIFIED` result.
+4. Schedule: inspect dependencies and dates.
+5. Switch projects: the other sample retains independent records.
+
+The screenshots above show this same synthetic workflow.
+
+## What to discuss in an interview
+
+| Area | Inspectable implementation |
+| --- | --- |
+| Product scope | A project-resumption workflow, intended users and explicit tradeoffs |
+| Information architecture | Three-pane layout, one primary Today action and expandable source records |
+| AI permissions | Separate connection, read, send and action permissions |
+| Full-stack engineering | Local Python HTTP API, SQLite, SSE, vanilla JavaScript and Node MCP |
+| Reliability | Revision conflicts, duplicate claims, consent withdrawal, interrupted-write reconciliation and retained negative results |
+| Desktop distribution | macOS WKWebView host, Windows scripts, bundled runtimes and self-checks |
+
+Code and tests support implementation claims. User scale, time savings, commercial returns and market superiority have not been measured.
+
+## Résumé example
+
+**Yanxu · Personal open-source project: a local project workspace for AI collaboration**
+
+- Designed a workflow linking project goals, actions, deliverables, results and source versions to help resume work scattered across AI chats, files and tasks; provided a three-pane interface and Today entry point.
+- Implemented local project management and agent integration with Python, SQLite, vanilla JavaScript and Node MCP, including revision checks, consent withdrawal, action budgets and source-linked unverified results.
+- Distributed Apple Silicon macOS and Windows x64 beta packages, an isolated demo and automated regression checks; native Windows execution and long-term user benefits remain unverified.
+
+Adjust “designed / implemented / led” to reflect your actual contribution. Describe AI-assisted development and verification honestly when asked. Use the repository, screenshots and runnable demo as evidence; do not invent user counts or efficiency percentages.

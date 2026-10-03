@@ -25,6 +25,9 @@ class LoginTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.profile = mock.patch.object(runtime,'profile',return_value={})
         self.profile.start()
+        self.executable = mock.patch.object(runtime.shutil, 'which', return_value=sys.executable)
+        self.executable.start()
+        self.addCleanup(self.executable.stop)
         self.conn = runtime.Connection(self.tmp.name,factory=LoginRPC)
         self.body = {'if_revision':1,'consent':'codex-browser-login-v1'}
     def tearDown(self):

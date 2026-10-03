@@ -34,3 +34,40 @@
 使用「数据与外观 → 导出备份」。项目备份不包括所有原文件、账号或 AI 授权，原始文件需另保留。升级前退出当前测试版并保留旧包。
 
 反馈请提供版本、系统与芯片、步骤、期待结果、实际结果，以及脱敏截图。不要上传数据库、账号缓存、连接令牌、完整对话或个人研究资料。
+
+---
+
+# English · Getting started
+
+Start with a non-critical project and basic features before enabling AI.
+
+## Download and launch
+
+Download the matching ZIP from [Releases](https://github.com/lingyi-liusd/yanxu/releases/tag/v2026.10.03-beta.16) and fully extract it. On Mac, open “研序测试版.app”. On Windows, run “一键安装.cmd” (install) or “打开研序.cmd” (launch without installation). Closing the Windows browser does not stop the background service; use “退出研序.cmd” (quit). On Mac, Quit or ⌘Q stops the service owned by that app.
+
+The first run has no projects. Beta data lives in a separate local ResearchDeskBeta directory; existing beta records are reused. Packages do not include the maintainer's projects or accounts. Native Windows execution has not been tested, and the Mac app is not notarized. If your OS blocks launch, report its exact message with private details redacted.
+
+## A ten-minute walkthrough
+
+1. Create a project with a specific goal, such as “Compare three options and write a one-page explanation.”
+2. Add a current task; dates and dependencies can be added later.
+3. Inspect Today and follow its next-step link to the original record.
+4. Save a project note under Deliverables and files; restart to check persistence.
+5. Explore schedule, actions, results/evidence and timeline. Empty records should remain empty.
+6. Switch between Chinese and English. Project content is not automatically translated; some advanced UI text remains Chinese.
+
+For a no-login source demo, run `python3 scripts/start_demo.py` and open the printed localhost address. It uses a temporary profile and synthetic records, makes no model calls and does not modify your normal workspace. Stop it with Ctrl-C.
+
+## Optional AI
+
+Enable the persistent connection in AI Settings → Agents, sign in to your own Codex account through the official login page, wait for account readback and select an available model. A successful connection does not authorize project summaries or file reading.
+
+Confirm summary scope and frequency separately for each project. Summaries follow the configured rhythm when records change; unchanged projects do not repeatedly invoke the model. Large projects use a fixed snapshot with batches and a final summary; the 180 KB single-input preparation limit still applies. Failures are not automatically retried; reconcile uncertain writes first.
+
+Bind a workspace before separately authorizing local reading, PDF/DOCX text extraction and sending source text. Scans, images, equations and charts may leave extraction gaps. Text extraction does not prove complete understanding. External agents use the generated project-scoped MCP configuration and preserve goals, contracts, budgets and source versions. Keep tokens on your own device.
+
+## Backup and feedback
+
+Use Data and appearance → Export backup. Project backups do not include all original files, accounts or AI permissions; keep original files separately. Quit the current beta before upgrading and retain the old package.
+
+Report the version, OS/chip, steps, expected behavior, actual behavior and redacted screenshots. Do not upload databases, account caches, connection tokens, complete conversations or personal research material.

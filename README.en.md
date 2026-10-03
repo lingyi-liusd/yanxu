@@ -6,6 +6,10 @@ Yanxu is a local-first desktop workspace for individual research, development, d
 
 ![Today view with synthetic demo records](docs/images/today-desktop.png)
 
+## Why Yanxu
+
+Returning to a weeks-long AI-assisted project often means finding the goal in an old chat, progress in scattered files and the source behind a claimed result. Yanxu puts goals, tasks, agent actions, deliverables, results and source versions into a shared project record, so people and agents can resume from the same context.
+
 ## What it offers
 
 - A Today view with the current record, a necessary reminder and one next action.
@@ -39,6 +43,19 @@ python3 scripts/start_demo.py
 
 The script starts a server with a new temporary profile and synthetic records. Stop it with Ctrl-C. It does not read personal files, invoke a model or modify your normal workspace. Screenshots use this same synthetic example.
 
+## Connecting an agent
+
+Generate project-scoped MCP configuration in **AI Settings → Agents**. Yanxu does not overwrite your global Codex configuration. The workflow is:
+
+```text
+project.get_context → check goals, source versions and boundaries
+project.claim_action → claim an action with outputs, criteria, budget and stop conditions
+project.report_activity → report progress
+project.add_artifact / project.record_result → register deliverables, sources and results
+```
+
+Generating configuration does not prove a connection. Agent reports default to `UNVERIFIED`; newer project-scoped tools and legacy compatibility tools have different isolation boundaries. See [Agent rules](AGENTS.md) and [Management connection](AGENT-MANAGER.md).
+
 ## Architecture and development
 
 HTML/CSS/JavaScript UI → local Python HTTP API → SQLite, versioned writes and SSE → project-scoped Agent Gateway → Node MCP. Native macOS packaging uses AppKit/WKWebView; Windows uses installation scripts and an Edge app window.
@@ -51,6 +68,16 @@ Development checks require Python 3.13 and Node 22. They cover synthetic softwar
 
 This is a single-user local beta, not a public multi-user server. Workspace path checks are application rules, not an OS sandbox. There is no cross-agent file write lock or promise of uninterrupted unattended operation.
 
+## Product story and portfolio
+
+The design keeps Today focused on one current item and one next action, with original records available on demand. Reading files, sending content and authorizing agent actions require separate consent. Delivery status and verification status remain separate, including failed, partial and unknown results.
+
+See the bilingual [Product story and résumé examples](docs/PRODUCT-STORY.md) and [Getting started](docs/GETTING-STARTED.md). The project provides inspectable code, screenshots and a runnable demo; user counts, time savings and commercial outcomes have not been measured.
+
+Next priorities are first-run installation, native Windows acceptance, stability across machines and remaining advanced UI translations. The interface includes Chinese and English settings, but some advanced UI text remains Chinese. Planned items in the [Roadmap](ROADMAP.md) are not current feature promises.
+
 ## License
 
 Yanxu source is [MIT licensed](LICENSE). Bundled dependencies and fonts retain their own licenses; see [Third-party notices](THIRD-PARTY-NOTICES.md).
+
+[中文 / Chinese](README.md)

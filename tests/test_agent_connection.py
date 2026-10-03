@@ -73,6 +73,9 @@ class ConnectionTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.patcher = mock.patch.object(runtime, 'profile', return_value={})
         self.patcher.start()
+        self.executable = mock.patch.object(runtime.shutil, 'which', return_value=sys.executable)
+        self.executable.start()
+        self.addCleanup(self.executable.stop)
         self.connection = runtime.Connection(self.tmp.name, factory=FakeRPC, heartbeat=.02)
         self.snapshot = {'current':{'project':{'id':'p','goal':'原问题'},'source_bridge':{'revision':1}},'source_hash':'v1'}
 
