@@ -1,0 +1,18 @@
+const fs=require('fs'),path=require('path'),vm=require('vm'),assert=require('assert');
+const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
+const nodes={sideUtilityMenu:{hidden:true},sideUtilityButton:{attrs:{},setAttribute(k,v){this.attrs[k]=v;}},other:{hidden:false}},handlers={};
+const ctx={$:id=>nodes[id],document:{querySelectorAll:()=>[nodes.sideUtilityMenu,nodes.other],addEventListener:(k,f)=>handlers[k]=f}};
+vm.createContext(ctx);
+vm.runInContext(html.slice(html.indexOf('function closeMenus()'),html.indexOf('function tabButton(')),ctx);
+ctx.toggleToolMenu('sideUtilityMenu');assert(!nodes.sideUtilityMenu.hidden);assert(nodes.other.hidden);assert.equal(nodes.sideUtilityButton.attrs['aria-expanded'],'true');
+handlers.click({target:{closest:()=>true}});assert(!nodes.sideUtilityMenu.hidden);
+handlers.click({target:{closest:()=>false}});assert(nodes.sideUtilityMenu.hidden);assert.equal(nodes.sideUtilityButton.attrs['aria-expanded'],'false');
+ctx.toggleToolMenu('sideUtilityMenu');ctx.toggleToolMenu('sideUtilityMenu');assert(nodes.sideUtilityMenu.hidden);
+ctx.toggleToolMenu('missing');ctx.closeMenus();assert(nodes.sideUtilityMenu.hidden);
+const rule=html.match(/\.rd-tool-menu\.rd-side-utility-menu \{([^}]+)\}/)[1];
+assert(rule.includes('top: auto;')&&rule.includes('bottom: 34px;')&&rule.includes('width: auto;'));
+assert(rule.includes('overflow-y: auto;')&&rule.includes('max-height:'));
+assert(html.includes(':not(#agentsNav):not(#workspaceNav):not(#sideUtilityButton):not(#sideUtilityMenu)'));
+assert(html.includes('aria-controls="sideUtilityMenu"'));
+assert(html.includes("if (event.key === \"Escape\")"));
+console.log('Utility menu PASS: upward positioning with stronger specificity, bounded height, narrow access, expanded state, toggle/outside/Escape dismissal');

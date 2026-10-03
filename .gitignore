@@ -1,0 +1,46 @@
+data/*
+!data/.gitkeep
+*.sqlite3
+*.sqlite3-*
+*.bak
+*.log
+api-token
+.DS_Store
+__pycache__/
+*.pyc
+*.bak_p0
+*.bak_*
+
+# Credentials and machine-local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+credentials*
+secrets*
+.codex/
+.aws/
+# Runtime data, user workspaces and generated output
+*.db
+*.db-*
+snapshots/
+backups/
+logs/
+user-data/
+workspace/
+node_modules/
+.venv/
+venv/
+build/
+dist/
+coverage/
+.pytest_cache/
+# Development copies must never enter the source release
+*.bak*
+*~
+
+# Private reviewed model data-scope policy
+analysis-policy.json

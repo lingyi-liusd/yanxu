@@ -1,0 +1,21 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert');
+const html=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8');
+const calls=[],renders=[];
+const ctx={aiProjectId:'p1',aiView:'project',aiRefreshSequence:0,aiProject:null,$:()=>null,data:{projects:[{id:'p1'}]},loadState:async()=>{},api:async(path,body)=>{calls.push({path,body});return path.startsWith('project-focus')?{focus:null}:{project:{id:ctx.aiProjectId}};},aiRenderContent:()=>renders.push(ctx.aiProject.project.id),aiRenderInspector:()=>{},osMountStatus:()=>{},osUpdateSetupIndicators:()=>{},Date,encodeURIComponent};
+vm.createContext(ctx);
+vm.runInContext(html.slice(html.indexOf('const aiReadingState ='),html.indexOf('function aiTime(')),ctx);
+vm.runInContext(html.slice(html.indexOf('async function aiRefresh()'),html.indexOf('function osUpdateAgentConnections(')),ctx);
+(async()=>{
+ await ctx.aiRefresh();assert.equal(renders.at(-1),'p1');assert(calls.every(x=>x.body===undefined),'Refresh must never POST analysis');
+ let resolveOld;ctx.api=async(path)=>path.startsWith('project-focus')?{focus:null}:new Promise(resolve=>{resolveOld=resolve;});
+ const old=ctx.aiRefresh();await new Promise(resolve=>setImmediate(resolve));
+ ctx.aiProjectId='p2';ctx.api=async(path)=>path.startsWith('project-focus')?{focus:null}:{project:{id:'p2'}};
+ await ctx.aiRefresh();resolveOld({project:{id:'p1'}});await old;
+ assert.equal(ctx.aiProject.project.id,'p2');assert.equal(renders.at(-1),'p2');
+ let resolveView;ctx.api=async(path)=>path.startsWith('project-focus')?{focus:null}:new Promise(resolve=>{resolveView=resolve;});
+ const oldView=ctx.aiRefresh();await new Promise(resolve=>setImmediate(resolve));
+ const count=renders.length;ctx.aiView='today';resolveView({project:{id:'p2'}});await oldView;
+ assert.equal(renders.length,count,'A response for the old view must not redraw the new view');
+ assert(html.includes('aiEventArrived("state")'));assert(html.includes('if (aiView) aiRefresh()'));
+ console.log('UI refresh PASS: read-only, stale project/view responses rejected, missing panels safe, local/SSE hooks present');
+})().catch(e=>{console.error(e);process.exit(1)});

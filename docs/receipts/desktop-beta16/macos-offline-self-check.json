@@ -1,0 +1,36 @@
+{
+  "kind": "offline-installation-test",
+  "model_calls": 0,
+  "user_sources_read": false,
+  "platform": "darwin",
+  "python": "3.13.16",
+  "checks": [
+    "bundled-document-modules-pinned-wheels-synthetic-pdf-docx",
+    "bundled-runtimes-and-isolation-flags",
+    "bundled-app-server-handshake-isolated-profile-no-login-no-turn",
+    "secure-file-read-and-escape-rejection",
+    "fresh-empty-state-and-concurrent-single-instance",
+    "persistent-connection-default-off",
+    "unauthenticated-state-denied",
+    "bundled-node-mcp-initialize-and-tools-list",
+    "exact-package-files-unchanged-through-test"
+  ],
+  "package": {
+    "release": "2026.10.03-beta.16",
+    "platform": "macos-arm64",
+    "files_sha256": "810162e80ae05668a64bda23698653d08b242399e78245f4b6cd5efe0ec249b2"
+  },
+  "document_runtime": {
+    "pypdf": "6.19.0",
+    "modules": [
+      "pypdf",
+      "typing_extensions",
+      "document_text",
+      "document_worker"
+    ],
+    "extraction": "SYNTHETIC_PDF_DOCX_AND_INVALID_PDF_PASS"
+  },
+  "node": "v22.23.3",
+  "codex": "codex-cli 0.160.0",
+  "status": "PASS"
+}

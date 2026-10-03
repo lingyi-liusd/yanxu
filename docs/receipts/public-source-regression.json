@@ -1,0 +1,43 @@
+{
+  "release": "2026.10.03-beta.16",
+  "scope": "public-source-regression",
+  "date": "2026-10-03",
+  "python": "3.13.16",
+  "python_tests": {
+    "total": 493,
+    "passed": 492,
+    "skipped": 1,
+    "failed": 0,
+    "skip_reason": "Windows native API requires real Windows host"
+  },
+  "node_ui_groups": 27,
+  "inline_script_blocks": 4,
+  "status": "PASS",
+  "real_model_calls": 0,
+  "user_sources_read": false,
+  "native_macos_gui": "NOT_RUN_FOR_THIS_RELEASE",
+  "windows_native_execution": "NOT_RUN",
+  "user_benefit": "NOT_RUN",
+  "runtime_source_baseline": {
+    "desktop_beta16_files_compared": 26,
+    "mismatches": 0
+  },
+  "warnings": [
+    "ResourceWarning: unclosed SQLite connections in regression; no test failure; lifecycle cleanup remains an engineering improvement"
+  ],
+  "raw_log_sha256": "d7b1d17985077cd5d0124854060727511bcc2ae9997769e81ad996bb16d15b3c",
+  "raw_log_public": false,
+  "raw_log_note": "Local raw log includes machine paths; summary is public, raw log retained locally.",
+  "post_export_portability_checks": {
+    "agent_gateway": {
+      "tests": 21,
+      "passed": 21
+    },
+    "portable_packaging": {
+      "tests": 43,
+      "passed": 42,
+      "skipped": 1
+    },
+    "source_intake_ui": "PASS"
+  }
+}

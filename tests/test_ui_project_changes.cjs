@@ -1,0 +1,12 @@
+const fs=require('fs'),path=require('path'),vm=require('vm'),assert=require('assert');
+const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8'),ctx={};vm.createContext(ctx);
+vm.runInContext(html.slice(html.indexOf('function rdProjectChangeExplanation('),html.indexOf('function rdProjectChangeMarkup(')),ctx);
+const c={project:{id:'p'},actions:[{id:'a',project_id:'p',why_now:'发起理由'}],events:[{id:'e',project_id:'p',timestamp:'2026-10-02',source_action:'a',before:{status:'running'},after:{status:'running'},reason:''},{id:'old',project_id:'p',timestamp:'2026-10-01',before:{status:'claimed'},after:{status:'running'},reason:'用户批准后开始'},{id:'q',project_id:'q',timestamp:'2026-10-03'}],management:{continuity:{source_hash:'new',baseline:{job_id:1}},latest_analysis:{state:'succeeded',signature:'old',analysis:{changes:'过期'}}}};
+const before=JSON.stringify(c),m=ctx.rdProjectChangeExplanation(c);
+assert.equal(m.rows.length,2);assert(m.rows[0].state.includes('状态未变'));assert(m.rows[0].reason.includes('尚未说明'));assert(!m.rows[0].reason.includes('发起理由'));assert(m.rows[1].state.includes('已领取 → 推进中'));assert(!m.fresh);assert.equal(m.analysis,null);assert.equal(JSON.stringify(c),before);
+c.management.latest_analysis.signature='new';assert(ctx.rdProjectChangeExplanation(c).fresh);c.management.latest_analysis.stale=true;assert(!ctx.rdProjectChangeExplanation(c).fresh);
+assert.equal(ctx.rdProjectChangeExplanation({project:{id:'p'},events:[]}).rows.length,0);
+const added=ctx.rdProjectChangeExplanation({project:{id:'p'},events:[{project_id:'p',timestamp:'x',after:{status:'finished'}}]});assert(added.rows[0].state.includes('没有可比较'));
+const render=html.slice(html.indexOf('function osRenderProject('),html.indexOf('function rdActionSwimlanes('));assert(render.includes('osJourney()'));assert(render.includes("'项目结构', tree"));assert(render.includes('rdProjectChangeMarkup(c)'));
+for(const script of html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi))new Function(script[1]);
+console.log('Project changes PASS: immutable project-scoped records, truthful before/after, missing reasons, no why_now causality, stale analysis blocked, existing structure preserved, scripts compile');

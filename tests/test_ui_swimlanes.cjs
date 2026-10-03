@@ -1,0 +1,11 @@
+const fs=require('fs'),path=require('path'),vm=require('vm'),assert=require('assert');
+const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8'),ctx={};vm.createContext(ctx);
+vm.runInContext(html.slice(html.indexOf('function rdActionSwimlanes('),html.indexOf('function rdSwimCard(')),ctx);
+const c={agents:[{id:'a',name:'Codex'},{id:'b',name:'Codex'},{id:'idle',name:'Planner'}],actions:[{id:'x',project_id:'p',agent_id:'a',task_id:'t',status:'running',goal:'DeepSeek is text, not owner'},{id:'y',project_id:'p',agent_id:'b',status:'claimed'},{id:'z',project_id:'p',agent_id:'b',status:'result_reported'},{id:'f',project_id:'p',agent_id:'a',status:'failed'},{id:'q',project_id:'q',status:'running'}]};
+const tasks=[{id:'t',project:'p',status:'进行中'},{id:'waiting',project:'p',status:'待开始'},{id:'block',project:'p',status:'受阻'},{id:'unknown',project:'p',status:'UNKNOWN'},{id:'done',project:'p',status:'已完成'},{id:'note',project:'p',noteType:'note'},{id:'other',project:'q',status:'进行中'}];
+const before=JSON.stringify({c,tasks}),board=ctx.rdActionSwimlanes(c,tasks,'p');
+assert.equal(board.current.length,6);assert.equal(board.history.length,2);assert(!board.current.some(i=>i.id==='t'));assert(!board.current.some(i=>['q','other','note'].includes(i.id)));
+assert.equal(board.current.find(i=>i.id==='y').column,'ready');assert.equal(board.current.find(i=>i.id==='z').column,'review');assert.equal(board.current.find(i=>i.id==='block').column,'blocked');assert.equal(board.current.find(i=>i.id==='unknown').column,'review');
+assert(board.lanes.find(l=>l.id==='a').label.includes(' · a'));assert(board.lanes.find(l=>l.id==='idle').items.length===0);assert(!board.lanes.some(l=>l.name==='DeepSeek'));assert.equal(board.current.find(i=>i.id==='waiting').actor,'unassigned');assert.equal(JSON.stringify({c,tasks}),before);
+assert.equal(ctx.rdActionSwimlanes({},[],'p').current.length,0);assert(html.includes('rd-swim-grid'));assert(!html.slice(html.indexOf('function osRenderActions('),html.indexOf('function osResultBranches(')).includes('osJourney()'));
+console.log('Swimlanes PASS: real Agent IDs; multi-agent columns; claimed vs running vs reported; unknown not promoted; failed history retained; explicit task-binding dedup only; unassigned lane; notes/cross-project excluded; immutable source');
