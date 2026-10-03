@@ -15,3 +15,15 @@
 如仓库提供 GitHub 私密漏洞报告入口，请优先使用。否则可通过普通 issue 请求私密联系，但不要在 issue 中附漏洞利用细节、令牌、登录文件、真实对话、数据库或个人文件。维护者联系方式未配置前，不上传敏感附件。
 
 公开普通错误报告只需版本、系统、最小复现和脱敏截图。涉及数据丢失、越权读取或重复执行时，先暂停该项目的 AI / 来源功能并保留本地现场。
+
+---
+
+# English · Security boundaries and reporting
+
+Yanxu is a local single-user beta and listens on loopback by default. Keep its port, API tokens and local Codex service off the public Internet.
+
+Workspace binding, reading, extraction and sending text require separate consent; directory changes invalidate previous permissions. Project-scoped tokens and legacy global tools have different isolation boundaries: do not give untrusted agents global tokens. Path/extraction checks are application controls, not an OS sandbox; there are no cross-agent file write locks. Model summaries remain unverified suggestions, not scientific conclusions or new authorization. Paused, failed or interrupted work is not automatically replayed; sleep and app shutdown affect availability.
+
+Independent security auditing, native Windows acceptance, formal signing/notarization and long-term stability acceptance remain incomplete.
+
+Use GitHub's private vulnerability reporting when available. Otherwise request a private contact via an issue without publishing exploit details, tokens, login files, full conversations, databases or personal files. Ordinary bug reports need a version, platform, minimal reproduction and redacted screenshots. For suspected data loss, unauthorized reading or duplicate execution, pause the affected project's AI/source features and preserve local evidence.

@@ -25,3 +25,15 @@ python3 scripts/verify_release.py
 自动回归通过不代表原生安装、真实登录、模型质量、长期稳定性或用户收益通过。CI 以实际运行记录为准。
 
 贡献的项目原创源码沿用 MIT；第三方内容须保留原许可和来源。
+
+---
+
+# English · Contributing
+
+Bug reports, wording fixes and small improvements with a concrete user scenario are welcome. Explain the problem, reproduction steps and expected behavior before discussing implementation.
+
+Use Python 3.13 and Node 22. Run `python3 scripts/start_demo.py` for an isolated example and `python3 scripts/verify_release.py` for regression checks. Ordinary features need no globally installed dependencies; PDF parsing uses the pinned vendor wheel. Tests use synthetic data and separate directories. Do not use real accounts, databases, source materials or model calls.
+
+Preserve the three-pane layout, existing logo and access to original records. Make revision conflicts, revoked consent, changed sources and interruptions explainable; do not silently retry failures. Keep delivery, reported results and verification separate, retaining failures and unknowns. Agents read context before acting, preview/check revisions/read back writes, and preserve human notes. Public exports use explicit file lists and exclude runtime data, credentials, logs, backups and caches.
+
+Describe the problem, final behavior, relevant tests and uncovered boundaries in a PR. Passing regression does not prove native installation, login, model quality, long-term stability or user benefits. CI status follows actual runs. Original contributions use MIT; third-party content retains its source and license.

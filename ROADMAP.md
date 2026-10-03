@@ -18,3 +18,19 @@
 ## 需要另行设计的范围
 
 多用户公网部署、云端常在线调度、任意 Agent 无人值守协作、跨 Agent 文件写入锁、其他桌面架构的分发包。当前不承诺这些能力，也不以模型摘要替代科学核验。
+
+---
+
+# English · Roadmap
+
+Current release: 2026.10.03-beta.16, public beta. These are proposed improvements, not completed features or delivery-date commitments.
+
+- [ ] Native Windows 10/11 x64 installation, shortcuts, directory selection and shutdown acceptance.
+- [ ] First install, login, quit and restart of the current Mac package on an independent machine.
+- [ ] Consistent Chinese/English advanced UI text and error messages.
+- [ ] Observe setup and resumption with intended users' real projects.
+- [ ] Gradually modularize the large UI while preserving behavior and the three-pane layout.
+- [ ] Validate multi-day operation, interruptions and backup restoration across machines.
+- [ ] Improve signing/notarization and upgrade instructions.
+
+Multi-user hosting, always-on cloud scheduling, arbitrary unattended agents, cross-agent file locks and additional desktop architectures require separate design. Model summaries do not replace scientific verification.
