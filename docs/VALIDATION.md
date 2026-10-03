@@ -39,3 +39,9 @@ CI 状态以 GitHub 实际运行记录为准。工作流文件存在不表示已
 The initial desktop assets contained local directory paths in historical acceptance documentation. Those assets were withdrawn. Public documents replaced the historical guides, Python caches were removed, manifests were regenerated and the Mac app was signed again. The sanitized Mac offline self-check passed against its new file digest. Both replacement archives passed CRC and targeted privacy checks. Old receipts apply only to the original packages. Previously downloaded copies cannot be recalled.
 
 See [new offline receipt](receipts/public-package-self-check.json) and [privacy-check scope](receipts/publication-privacy-check.json). Automated pattern scans and screenshot inspection are bounded checks, not an independent security audit.
+
+## 云端回归 / Cloud regression
+
+[GitHub run](https://github.com/lingyi-liusd/yanxu/actions/runs/37124024386)：Linux PASS；macOS 在 15 分钟限额内未完成，显示取消且日志已有失败标记，因此不能记为 PASS。原本机 Mac 回归和公开重打包离线自检分别有独立回执；不替代 macOS 云端检查。
+
+Linux CI passed. The macOS cloud job timed out at its 15-minute limit, with failure markers in its log; it is not a passing check. Local Mac regression and the sanitized package's offline self-check have separate receipts. Diagnosing the macOS cloud test environment remains open.
