@@ -4,7 +4,7 @@
 
 Yanxu is a local-first desktop workspace for individual research, development, design and writing projects. It brings project goals, tasks, agent actions, deliverables, results and source versions into one place.
 
-![Today view with synthetic demo records](docs/images/today.jpg)
+![Today view with synthetic demo records](docs/images/today-desktop.png)
 
 ## What it offers
 

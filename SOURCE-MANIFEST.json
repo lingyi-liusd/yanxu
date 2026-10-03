@@ -20,8 +20,8 @@
     "LICENSE": "5242aa113dc39187679d26ca5cf2d93d84e2c7491c0e9adafbb7f47652f76b1c",
     "PLUGIN.md": "ed2316ac7f8e01265eb26927ac56321a4ecf6ace27aacf568776247d30a9780f",
     "PROJECT-OS-MIGRATION.md": "5684fc1456095a58aa625728ac61cb00aff875d6cd02cc00897e280bb3b54ede",
-    "README.en.md": "0762bc272b9f6710dd9432433f848e8ec209d4763c9c3be5663d83900a83e4d7",
-    "README.md": "a674fd06001c276e331ce6646b13cda12846fc8eb50f11390bd5ffce77c61649",
+    "README.en.md": "154b08a40f1d6789d9e0e91793b7bae3c9321cc7c39e3d43896dea5d5e9a101b",
+    "README.md": "0043f2b83eb624bb84418264d9889d9ebddaf104daceaf0945ec0db80e570b47",
     "ROADMAP.md": "f09f7408345f007fc33e610b225498d4da7b2aecb3183c98fa9c52f60feb6481",
     "SECURITY.md": "b3952dfb194243107226da6d086f2c7dee2a82ad8fbe26590f636dcec938fb84",
     "THIRD-PARTY-NOTICES.md": "e24b7de44c7dddf720a4549e798ddd8ea7bdbdc5603f6b2316858ca957c07a88",
@@ -35,7 +35,7 @@
     "assets/yanxu-logo.png": "85d14b2173d8752195f4b4a785c1fbfc78b92140dff38bfe8c8680ce75f3aa9b",
     "docs/ARCHITECTURE.md": "05696cf9b285690867f0a5145c65690038e80247b0e76531955bb82a646f1615",
     "docs/GETTING-STARTED.md": "f808031af28cfc0ab570af9139e345100cdd0f4a42b0e909cee5a1f7dd1593ec",
-    "docs/PRODUCT-STORY.md": "5efe60a3bb35a0601548df577cd8e75fc3c562eafa83bf47383f560e6d1bb1e2",
+    "docs/PRODUCT-STORY.md": "4ec06fbef9d0eee303958426e0205fa5b10bc0e0f90c8bd2a7eec8a4c243b407",
     "docs/RELEASE-HANDOFF.md": "68e75fc070fcf2c62d130b71a2bd274b4a3411b64a768fcfddf27df057da0797",
     "docs/VALIDATION.md": "91be2da60a919237386942b69734f485e4060384ce0ac392bae08d3b302ea9df",
     "docs/images/project.jpg": "dc90cf47bf2c9df08099f87cdbc961dc8ab09101cb40240485223cf47659d4ea",
@@ -139,7 +139,8 @@
     "vendor/README.md": "b1272bf8f30fd876c4fa5c82cccdab438d02844f4d0e54865c1cb7d1cf5dd27e",
     "vendor/pypdf-6.19.0-py3-none-any.whl": "7e5d6e730e7dae87d560a2cee218b852f6498c8be61966f3cd02ead971e48d14",
     "vendor/typing_extensions-4.15.0-py3-none-any.whl": "f0fa19c6845758ab08074a0cfa8b7aecb71c999ca73d62883bc25cc018c4e548",
-    "workspace_registry.py": "8e81387c15b97d83121bcd4ab3a0abaf9bc7f610060d83518948389f41371473"
+    "workspace_registry.py": "8e81387c15b97d83121bcd4ab3a0abaf9bc7f610060d83518948389f41371473",
+    "docs/images/today-desktop.png": "871740a809a66fe765ace32562be08e78a51379b53926905c53bfea57b00f158"
   },
   "acceptance": "See docs/VALIDATION.md. Native, model and user-benefit gates remain separate."
 }

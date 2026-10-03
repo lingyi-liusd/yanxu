@@ -11,7 +11,7 @@
 </p>
 <p align="center"><a href="https://github.com/lingyi-liusd/yanxu/releases/tag/v2026.10.03-beta.16">下载测试版</a> · <a href="#快速体验">快速体验</a> · <a href="docs/ARCHITECTURE.md">架构</a> · <a href="docs/PRODUCT-STORY.md">产品设计</a> · <a href="README.en.md">English</a></p>
 
-![研序 Today：合成示例中的当前工作与下一步](docs/images/today.jpg)
+![研序 Today：合成示例中的当前工作与下一步](docs/images/today-desktop.png)
 
 ## 为什么做研序
 

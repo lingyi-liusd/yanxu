@@ -24,7 +24,7 @@
 4. 排期：看到已有依赖与日期。
 5. 切换项目：另一示例项目保持独立记录。
 
-![Today 合成示例](images/today.jpg)
+![Today 合成示例](images/today-desktop.png)
 
 ![结果与依据：合成示例保留部分完成和未核验](images/results.jpg)
 
