@@ -30,7 +30,7 @@
     "private_handoff_and_run_receipts_included": false,
     "screenshots": "Only synthetic demonstration records, no account identifiers",
     "pattern_scan_exceptions": [
-      "Generic codex://threads/UUID input placeholder in index.html",
+      "Generic thread-link UUID input placeholder in index.html",
       "Synthetic credential literals used by tests/test_workspace_adversarial.py to test refusal"
     ],
     "limitations": "Pattern and explicit-file checks are not an independent security audit."
