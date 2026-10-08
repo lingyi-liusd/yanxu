@@ -90,7 +90,8 @@ class ServerCase(unittest.TestCase):
     def test_brand_logo_is_served_without_api_token(self):
         with urllib.request.urlopen(self.base + "/", timeout=3) as response:
             page = response.read().decode("utf-8")
-            self.assertIn('src="/assets/yanxu-logo.png"', page)
+            self.assertIn('aria-label="续芽标志"', page)
+            self.assertIn('>续芽<small>项目工作台</small>', page)
             self.assertIn('rel="icon" type="image/png" href="/assets/yanxu-logo.png"', page)
         with urllib.request.urlopen(self.base + "/assets/yanxu-logo.png", timeout=3) as response:
             self.assertEqual(response.headers.get_content_type(), "image/png")

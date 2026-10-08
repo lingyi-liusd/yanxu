@@ -1,0 +1,9 @@
+{
+  "schema_version": "yanxu.source-pack.v1",
+  "name": "公开软件与研究更新 · 示例包",
+  "question": "选定来源有哪些值得阅读的更新？",
+  "sources": [
+    {"name":"Flask 官方发布","url":"https://github.com/pallets/flask/releases.atom","keywords":[],"interval_minutes":1440},
+    {"name":"arXiv cs.AI","url":"https://rss.arxiv.org/rss/cs.AI","keywords":[],"interval_minutes":1440}
+  ]
+}

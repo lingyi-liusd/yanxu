@@ -1,0 +1,48 @@
+{
+  "release": "v2026.10.08-source-preview.1",
+  "date": "2026-10-08",
+  "distribution": "source preview only",
+  "license": "MIT",
+  "local_source_baseline": "d26105a",
+  "public_history_base": "86cb152",
+  "verification": {
+    "python_discovered": 590,
+    "python_skipped": 1,
+    "initial_failure": "One obsolete server test required the former inline image logo after the approved wordmark redesign.",
+    "correction": "Assert the current accessible 续芽 wordmark and retain favicon/public PNG endpoint validation.",
+    "targeted_server_recheck": {
+      "tests": 28,
+      "status": "PASS"
+    },
+    "other_python_tests": "PASS on full run; not rerun after test-only assertion correction",
+    "node_ui_suites": 37,
+    "node_status": "PASS",
+    "inline_script_blocks_compiled": 10,
+    "synthetic_radar_group_adoption_chain": "PASS",
+    "fresh_isolated_demo": "PASS: workbench, zero-source radar, discussion and create-group/cancel",
+    "browser_warnings_errors": 0
+  },
+  "privacy": {
+    "runtime_data_included": false,
+    "credentials_included": false,
+    "private_model_inputs_included": false,
+    "development_git_history_included": false,
+    "private_handoff_and_run_receipts_included": false,
+    "screenshots": "Only synthetic demonstration records, no account identifiers",
+    "pattern_scan_exceptions": [
+      "Generic codex://threads/UUID input placeholder in index.html",
+      "Synthetic credential literals used by tests/test_workspace_adversarial.py to test refusal"
+    ],
+    "limitations": "Pattern and explicit-file checks are not an independent security audit."
+  },
+  "remaining_gates": {
+    "new_native_installers": "NOT_BUILT",
+    "Windows_native_new_version": "NOT_RUN",
+    "new_actual_model_calls": 0,
+    "real_model_quality": "PARTIAL from earlier local acceptance; not independently validated by this release",
+    "public_source_reliability": "UNKNOWN",
+    "user_benefit": "UNKNOWN",
+    "dark_mode_browser_acceptance": "NOT_RUN"
+  },
+  "desktop_downloads": "Existing beta.16 assets retained as historical downloads; not represented as this source version."
+}

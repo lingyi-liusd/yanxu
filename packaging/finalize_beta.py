@@ -163,6 +163,8 @@ def finalize(output, build_root, archives, mac_report=None):
     with info_path.open('rb') as stream:
         info = plistlib.load(stream)
     info['CFBundleVersion'] = build.VERSION
+    if build.BUNDLE_IDENTIFIER:
+        info['CFBundleIdentifier'] = build.BUNDLE_IDENTIFIER
     with info_path.open('wb') as stream:
         plistlib.dump(info, stream)
     # Deep signing may rewrite nested runtime executables; their final bytes

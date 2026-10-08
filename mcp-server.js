@@ -10,6 +10,12 @@ const TOKEN = process.env.RESEARCH_DESK_AGENT_TOKEN || fs.readFileSync(path.join
 const BASE = process.env.RESEARCH_DESK_BASE_URL || 'http://127.0.0.1:8765';
 const timeoutValue = Number(process.env.RESEARCH_DESK_HTTP_TIMEOUT_MS || 15000);
 const HTTP_TIMEOUT = Number.isFinite(timeoutValue) && timeoutValue > 0 ? timeoutValue : 15000;
+const REVIEW_OUTPUT = {type:'object',additionalProperties:false,
+  properties:Object.fromEntries(['recommendation','alternatives','tradeoffs','disagreements','unknowns','next_step','recheck_conditions'].map(k=>[k,{type:'string'}])),
+  required:['recommendation','alternatives','tradeoffs','disagreements','unknowns','next_step','recheck_conditions','citations']};
+REVIEW_OUTPUT.properties.citations={type:'array',maxItems:24,items:{type:'object',additionalProperties:false,
+  properties:{claim:{type:'string'},material_id:{type:'string'},locator:{type:'string'},relation:{type:'string',enum:['source','inference','unknown']}},
+  required:['claim','material_id','locator','relation']}};
 
 function api(p, method, body) {
   return new Promise((res, rej) => {
@@ -83,6 +89,10 @@ const AGENT_TOOLS = [
   { name:'research.finish_action', description:'兼容性确认：result 已自动结束 Action；重复 finish 幂等', inputSchema:{type:'object',properties:{action_id:{type:'string'},summary:{type:'string'}},required:['action_id','summary']} }
 ];
 const PROJECT_TOOLS = [
+  {name:'project.get_discussion_requests',description:'读取本 Agent 被分配的讨论请求与冻结上下文；仅提出建议，不构成执行项目任务的授权。先 project.get_context 握手。',inputSchema:{type:'object',properties:{}}},
+  {name:'project.reply_discussion',description:'回复人启动的当前讨论轮次，保存 UNVERIFIED 建议；不能代其他 Agent 回复或采纳为决策。',inputSchema:{type:'object',properties:{room_id:{type:'string'},participant_id:{type:'string'},run_id:{type:'string'},output:{type:'object',properties:{position:{type:'string'},evidence:{type:'string'},objections:{type:'string'},next_step:{type:'string'}},required:['position','evidence','objections','next_step'],additionalProperties:false}},required:['room_id','participant_id','run_id','output'],additionalProperties:false}},
+  {name:'project.get_radar_alerts',description:'读取当前项目的来源变化记录；文字变化不证明项目结论失效，保留来源前后版本及待复核状态。',inputSchema:{type:'object',properties:{}}},
+  {name:'project.reply_review',description:'提交获准的方案评审简报；只引用请求中的材料 ID 与实际行号。来源定位不等于事实核验，不自动采纳或执行。',inputSchema:{type:'object',additionalProperties:false,properties:{room_id:{type:'string'},participant_id:{type:'string'},run_id:{type:'string'},output:REVIEW_OUTPUT},required:['room_id','participant_id','run_id','output']}},
   {name:'project.get_context',description:'连接握手，读取包含目标、状态、重点、行动、成果、依据、结果、决定与权限的 Project Context',inputSchema:{type:'object',properties:{}}},
   {name:'project.claim_management_action',description:'按ID原子领取人已批准且来源有效的只读核查行动；契约不可改写。先读取 get_context.management.ready_handoffs。返回已有同Agent领取结果可安全重试。不是实验授权。',inputSchema:{type:'object',properties:{handoff_id:{type:'integer'}},required:['handoff_id']}},
   {name:'project.get_state',description:'读取当前项目记录状态与阻塞计数',inputSchema:{type:'object',properties:{}}},
@@ -108,6 +118,10 @@ async function agentApi(p, method, body) {
 }
 async function callAgent(name, a) {
   const get = p => agentApi(p, 'GET');
+  if (name === 'project.get_discussion_requests') { const value=await get('ecosystem');return {requests:value.requests,warnings:value.warnings}; }
+  if (name === 'project.reply_discussion') return agentApi('discussion/reply','POST',a);
+  if (name === 'project.reply_review') return agentApi('discussion/reply','POST',a);
+  if (name === 'project.get_radar_alerts') return {alerts:(await get('ecosystem')).alerts};
   if (name === 'project.get_context') return get('context');
   if (name === 'project.claim_management_action') return agentApi('management/claim','POST',a);
   if (name === 'project.get_state') { const c = await get('context'); return {project:c.project,current_state:c.current_state,current_focus:c.current_focus,active_actions:c.actions.filter(x => ['claimed','running','result_reported'].includes(x.status)),blockers:c.blockers,recent_results:c.results,pending_decisions:c.decisions,rev:c.rev}; }

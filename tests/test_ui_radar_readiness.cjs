@@ -1,0 +1,13 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert'),path=require('path');
+const ctx={};vm.createContext(ctx);vm.runInContext(fs.readFileSync(path.join(__dirname,'../chat_ui.js'),'utf8'),ctx);
+const source=fs.readFileSync(path.join(__dirname,'../ecosystem.js'),'utf8');const start=source.indexOf('  function incomingReplyReadiness('),end=source.indexOf('  async function discussIncoming',start);vm.runInContext(source.slice(start,end),ctx);
+const codex={id:'c',name:'本机模型',engine:'codex',model:'m'},external={id:'e',name:'助手',engine:'external',agent_id:'agent'};const group={members:[codex,external]},state={connection:{connected:false,logged_in:false,model_selection:{available:false,models:[]}},agents:[]};
+assert.equal(ctx.incomingReplyReadiness(state,group,[]).allowed,false);
+assert.equal(ctx.incomingReplyReadiness(state,group,['unknown']).allowed,false);
+assert.equal(ctx.incomingReplyReadiness(state,group,['c']).allowed,false);
+assert.equal(ctx.incomingReplyReadiness(state,group,['c','e']).allowed,false);
+const active={...state,agents:[{id:'agent',permission:'WRITE',status:'online'}]};
+assert.equal(ctx.incomingReplyReadiness(active,group,['e']).allowed,true,'external response remains pending, never falsely blocked by Codex');
+assert.equal(ctx.incomingReplyReadiness(active,group,['e','unknown']).allowed,false);
+assert(ctx.incomingReplyReadiness(active,group,['e']).message.includes('实际响应'));
+console.log('Radar reply readiness PASS: empty, invalid, disconnected, mixed recipients and external response boundary');

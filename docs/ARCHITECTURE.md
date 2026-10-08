@@ -16,6 +16,8 @@ flowchart LR
     A -->|可选管理连接| C[Codex App Server]
 ```
 
+本分支 v2：项目推进、评审、观察统一交付并共享有限项目上下文，保留旧专注入口；增加材料简报、覆盖、判断复核和最小外部契约。当前实现见 [生态架构](ecosystem/ARCHITECTURE-V2.md) 和 [验证](ecosystem/V2-VALIDATION.md)，公开 beta.16 与本分支预览分开核对。
+
 ## 关键对象
 
 | 对象 | 职责 |

@@ -1,3 +1,5 @@
+> 2026-10-08 当前生态源码请见根 README.md 与 docs/receipts/source-preview-20261008.json。以下桌面 beta.16 说明属于历史版本。
+
 # 第一次使用
 
 先用一个非关键项目体验普通功能，再决定是否启用 AI。

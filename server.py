@@ -5,6 +5,9 @@ import agent_manager
 import agent_connection
 import workspace_registry
 import folder_picker
+import ecosystem
+import ecosystem_contracts
+ECOSYSTEM_BUILD_ID = ecosystem_contracts.build_id()
 os.umask(0o077)
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
@@ -259,6 +262,8 @@ def _evidence_kind(task):
 def build_project_context(state, history=None, scope=FOCUS_SCOPE, feedback=None, as_of=None):
     '''Build a bounded, deterministic project context for the focus engine.'''
     state = state or {}
+    if scope == FOCUS_SCOPE and state.get('projects'):
+        state = ecosystem.desk_state(state)
     as_of = as_of or local_today()
     projects = list(state.get('projects') or [])
     tasks = list(state.get('tasks') or [])
@@ -811,6 +816,9 @@ def validate(s):
     pids={p['id'] for p in s['projects']}
     for p in s['projects']:
         if not str(p.get('name','')).strip(): raise ValueError('项目名称不能为空')
+        if p.get('app_owner') or p['id'] in ecosystem.APP_SPACES.values():
+            if ecosystem.APP_SPACES.get(p.get('app_owner')) != p['id']:
+                raise ValueError('App 个人空间身份不正确')
         for key in ('description','goal','success_definition','current_state','workspace','type'):
             if key in p and not isinstance(p[key],str): raise ValueError('项目 '+key+' 必须是文本')
         if 'constraints' in p and (not isinstance(p['constraints'],list) or any(not isinstance(item,str) for item in p['constraints'])):
@@ -1014,6 +1022,8 @@ def _manager_review(body):
         result['rev'] = bump_rev(c)
         maybe_snapshot(None,c)
     return result,ev
+ECOSYSTEM = ecosystem.Ecosystem(connect, GATEWAY, get_rev, bump_rev, notify_named, CONNECTION)
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self,*args): pass
     def send(self,status,body,kind='application/json',extra=None):
@@ -1042,13 +1052,21 @@ class Handler(BaseHTTPRequestHandler):
         path=urlparse(self.path).path
         if path=='/healthz':
             return self.send(200, {'app':'research-desk', 'launch_id':os.environ.get('RESEARCH_DESK_LAUNCH_ID',''),
-                                   'pid':os.getpid(), 'release':os.environ.get('RESEARCH_DESK_RELEASE','development')})
+                                   'pid':os.getpid(), 'release':os.environ.get('RESEARCH_DESK_RELEASE','development'),
+                                   'build_id':ECOSYSTEM_BUILD_ID, 'capabilities':ecosystem_contracts.capabilities()})
         if path=='/':
             return self.send(200,(ROOT/'index.html').read_bytes().replace(b'__TOKEN__',TOKEN.encode()).replace(b'__UI_LANGUAGE__',(ui_language() or '').encode()).replace(b'</body>',b'<script src="/local-presentation.js"></script></body>'),'text/html')
+        if path in ('/apps/discussion/', '/apps/radar/'):
+            app = path.split('/')[2]
+            return self.send(200, (ROOT/'apps'/'shell.html').read_bytes().replace(b'__APP__', app.encode()).replace(b'__TOKEN__', TOKEN.encode()), 'text/html')
+        if path in ('/apps/shell.js', '/apps/shell.css', '/apps/links.js'):
+            return self.send(200, (ROOT/path[1:]).read_bytes(), 'text/javascript' if path.endswith('.js') else 'text/css')
         if path=='/local-presentation.js':
             local=DATA/'private-ui-overrides.json'
             functions=json.loads(local.read_text(encoding='utf-8')).get('functions',[]) if local.exists() else []
             return self.send(200,'\n'.join(functions).encode(),'text/javascript')
+        if path in ('/ecosystem.js', '/ecosystem_state.js', '/ecosystem_client.js', '/ecosystem.css', '/review_ui.js', '/chat_ui.js'):
+            return self.send(200, (ROOT / path[1:]).read_bytes(), 'text/javascript' if path.endswith('.js') else 'text/css')
         if path=='/assets/yanxu-logo.png':
             return self.send(200,(ROOT/'assets'/'yanxu-logo.png').read_bytes(),'image/png')
         if path=='/assets/fonts/ChillRoundGothic-Bold.woff':
@@ -1074,6 +1092,8 @@ class Handler(BaseHTTPRequestHandler):
         if path.startswith('/api/agent/'):
             try:
                 agent = GATEWAY.authenticate(self._bearer())
+                if path == '/api/agent/ecosystem':
+                    return self.send(200, ECOSYSTEM.agent_get(agent))
                 result, ev = GATEWAY.agent_get(agent,path,parse_qs(urlparse(self.path).query))
                 if ev: notify_named(ev['type'],ev)
                 return self.send(200,result)
@@ -1082,6 +1102,34 @@ class Handler(BaseHTTPRequestHandler):
             except (ValueError,sqlite3.Error) as exc:
                 return self.send(400,{'error':str(exc)})
         if self.headers.get('Authorization')!='Bearer '+TOKEN: return self.send(401,{'error':'需要本机 API 令牌'})
+        if path == '/api/apps':
+            try:
+                result = ECOSYSTEM.apps(parse_qs(urlparse(self.path).query).get('app', [''])[0])
+                return self.send(200, result, extra={'X-Rev': str(result['rev'])})
+            except (ValueError, sqlite3.Error) as exc:
+                return self.send(400, {'error': str(exc)})
+        if path == '/api/ecosystem':
+            try:
+                project = parse_qs(urlparse(self.path).query).get('project_id', [''])[0]
+                result = ECOSYSTEM.view(project)
+                return self.send(200, result, extra={'X-Rev': str(result['rev'])})
+            except (agent_gateway.GatewayError, ValueError, sqlite3.Error) as exc:
+                return self.send(getattr(exc, 'status', 400), {'error': str(exc)})
+        if path == '/api/ecosystem/brief':
+            try:
+                import review_service
+                query = parse_qs(urlparse(self.path).query)
+                project = query.get('project_id', [''])[0]
+                with connect() as c:
+                    c.execute('BEGIN')
+                    GATEWAY.project(c, project)
+                    room = ECOSYSTEM.item(c, project, query.get('room_id', [''])[0], 'room')
+                    markdown = review_service.markdown(room)
+                return self.send(200, {'markdown': markdown, 'filename': '研序评审-' + room['id'] + '.md',
+                                       'sha256': hashlib.sha256(markdown.encode()).hexdigest(),
+                                       'brief_revision': room['brief']['revision'], 'object_rev': room.get('object_rev', 0)})
+            except (agent_gateway.GatewayError, ValueError, KeyError) as exc:
+                return self.send(getattr(exc, 'status', 400), {'error': str(exc)})
         if path=='/api/ui/preferences':
             return self.send(200,{'language':ui_language()})
         if path=='/api/agent-connection':
@@ -1143,6 +1191,7 @@ class Handler(BaseHTTPRequestHandler):
             with connect() as c:
                 s=json.loads(c.execute('SELECT body FROM state WHERE id=1').fetchone()[0])
                 rev=get_rev(c)
+            s = ecosystem.desk_state(s)
             if q.get('slim'): s={k:v for k,v in s.items() if k!='files'}
             return self.send(200,s,extra={'X-Rev':str(rev)})
         if path in ('/api/research-focus','/api/project-focus'):
@@ -1157,6 +1206,10 @@ class Handler(BaseHTTPRequestHandler):
                 'name':'研序本机 API','base':'http://127.0.0.1:8765',
                 'auth':'所有端点需 Authorization: Bearer <令牌>，令牌默认位于 ~/Library/Application Support/ResearchDesk/api-token（SSE 可用 ?token= 查询参数）',
                 'endpoints':{
+                    'GET /api/ecosystem?project_id=ID':'人类读取当前项目讨论、雷达、角色与共享上下文；不调用模型',
+                    'POST /api/ecosystem':'{project_id,operation,ifRev,...}：生态操作；支持 dry:true；开始讨论与读取来源需分别显式确认',
+                    'GET /api/agent/ecosystem':'项目 Agent 读取分配给自己的讨论请求与项目雷达变化',
+                    'POST /api/agent/discussion/reply':'握手后用 {room_id,participant_id,run_id,output} 回复本轮；输出保持 UNVERIFIED',
                     'GET /api/backup':'完整、有版本的项目备份；不含 Agent 凭据和原始用户文件',
                     'POST /api/restore':'{backup:完整备份,ifRev:版本号}：原子恢复新旧记录；Agent 需重新连接',
                     'GET /api/state':'完整状态 {projects,tasks,files,decisions}；?slim=1 剔除 files 大数组；响应头 X-Rev 为状态版本号',
@@ -1237,6 +1290,8 @@ class Handler(BaseHTTPRequestHandler):
         if path.startswith('/api/agent/'):
             try:
                 agent=GATEWAY.authenticate(self._bearer())
+                if path == '/api/agent/discussion/reply':
+                    return self.send(200, ECOSYSTEM.agent_reply(agent, self._read_json_body()))
                 result,ev=GATEWAY.agent_post(agent,path,self._read_json_body())
                 if ev:
                     for item in (ev if isinstance(ev,list) else [ev]):
@@ -1253,6 +1308,18 @@ class Handler(BaseHTTPRequestHandler):
             except (ValueError,KeyError,TypeError,sqlite3.Error) as exc:
                 return self.send(400,{'error':str(exc)})
         if self.headers.get('Authorization')!='Bearer '+TOKEN: return self.send(401,{'error':'需要本机 API 令牌'})
+        if path == '/api/ecosystem':
+            try:
+                result = ECOSYSTEM.post(self._read_json_body())
+                return self.send(200, result, extra={'X-Rev': str(result['rev'])})
+            except (agent_gateway.GatewayError, ValueError, TypeError, KeyError, sqlite3.Error) as exc:
+                return self.send(getattr(exc, 'status', 400), {'error': str(exc)})
+        if path == '/api/apps':
+            try:
+                result = ECOSYSTEM.init_apps(self._read_json_body())
+                return self.send(200, result, extra={'X-Rev': str(result['rev'])})
+            except (ValueError, sqlite3.Error) as exc:
+                return self.send(400, {'error': str(exc)})
         if path=='/api/project/folder-picker':
             # Human token plus the same-origin browser; no requested commands.
             if not self.headers.get('Origin'):
@@ -1427,6 +1494,8 @@ class Handler(BaseHTTPRequestHandler):
                         s=backup['state']
                         restore_gateway=backup.get('gateway')
                         portable_restore=True
+                    if self.path == '/api/state':
+                        s = ecosystem.preserve_app_state(s, json.loads(old))
                     s,_=migrate_state(s,0)
                 elif self.path=='/api/undo':
                     changed_collections.update(['projects','tasks','files','decisions'])
@@ -1460,6 +1529,8 @@ class Handler(BaseHTTPRequestHandler):
                         else:
                             item=op.get('item')
                             if not isinstance(item,dict): raise ValueError('缺少 item')
+                            if kind == 'projects' and (item.get('app_owner') or item.get('id') in ecosystem.APP_SPACES.values()):
+                                raise ValueError('App 个人空间元数据由对应 App 管理')
                             existing=next((x for x in s[kind] if x['id']==item.get('id')),None)
                             if existing is None:
                                 item['id']=item.get('id') or secrets.token_hex(12)
@@ -1519,7 +1590,7 @@ class Handler(BaseHTTPRequestHandler):
             changed = bool(changed_collections.intersection({'projects', 'tasks', 'files', 'decisions'}))
             notify({'kind': 'state', 'collections': sorted(changed_collections), 'project_changed': changed, 'research_changed': changed})
             for ev in legacy_events: notify_named(ev['type'],ev)
-            self.send(200,s,extra={'X-Rev':str(new_rev)})
+            self.send(200,ecosystem.desk_state(s),extra={'X-Rev':str(new_rev)})
         except (ValueError,KeyError,TypeError) as e: self.send(400,{'error':str(e)})
         except Exception: self.send(500,{'error':'保存失败，请检查磁盘空间和服务日志'})
     def do_PATCH(self):
@@ -1547,8 +1618,10 @@ if __name__=='__main__':
     if os.environ.get('OPEN_BROWSER')=='1': threading.Timer(.5,lambda:webbrowser.open('http://127.0.0.1:'+str(port))).start()
     CONNECTION.start()
     MANAGER.start()
+    ECOSYSTEM.start()
     def stop_server(*args):
         MANAGER.stop.set()
+        ECOSYSTEM.stop.set()
         CONNECTION.close()
         threading.Thread(target=server.shutdown, daemon=True).start()
     import signal
@@ -1558,5 +1631,6 @@ if __name__=='__main__':
         server.serve_forever()
     finally:
         MANAGER.stop.set()
+        ECOSYSTEM.stop.set()
         CONNECTION.close()
         server.server_close()

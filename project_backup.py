@@ -6,8 +6,8 @@ import secrets
 import datetime
 
 TABLES = ('agents', 'actions', 'action_results', 'artifacts', 'evidence',
-          'decision_requests', 'proposals', 'project_events', 'action_contracts', 'action_recoveries','result_reviews')
-ADDITIVE_TABLES = {'action_contracts','action_recoveries','result_reviews'}
+          'decision_requests', 'proposals', 'project_events', 'action_contracts', 'action_recoveries','result_reviews','ecosystem_items')
+ADDITIVE_TABLES = {'action_contracts','action_recoveries','result_reviews','ecosystem_items'}
 FORMAT = 'research-desk-project-backup'
 VERSION = 1
 
@@ -74,17 +74,29 @@ def validate(state, tables, c, portable=False):
     for row in tables['result_reviews']:
         if results.get(row['result_id'])!=row['project_id'] or row['evidence_id'] and evidence.get(row['evidence_id'])!=row['project_id']:
             raise ValueError('备份复核对象引用不一致')
+    from ecosystem import validate_backup
+    validate_backup(tables['ecosystem_items'], state, tables['agents'])
 
 def restore(c, state, tables, portable=False):
     tables=normalized(tables)
     validate(state, tables, c, portable)
     rows = copy.deepcopy(tables)
+    from ecosystem import restore_usage
+    restore_usage(c, rows['ecosystem_items'])
     if portable:
         for a in rows['agents']:
             # Portable backups contain records, never an active authentication credential.
             a['token_hash'] = hashlib.sha256(secrets.token_bytes(32)).hexdigest()
             a['last_seen'] = None
             a['status'] = 'configured'
+    # Restored records are not permission to replay inference or resume network polling.
+    for row in rows['ecosystem_items']:
+        item = json.loads(row['body'])
+        if row['kind'] == 'room' and item.get('active'):
+            item.update(active=False, status='interrupted')
+        if row['kind'] == 'watch':
+            item.update(enabled=False, config_version=item.get('config_version', 0) + 1)
+        row['body'] = json.dumps(item, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
     for table in reversed(TABLES): c.execute('DELETE FROM ' + table)
     for table in TABLES:
         columns = [r[1] for r in c.execute('PRAGMA table_info(' + table + ')')]

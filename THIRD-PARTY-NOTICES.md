@@ -14,3 +14,5 @@
 文档 wheel 来源和固定摘要见 `vendor/README.md`，运行库下载与摘要规则见 `packaging/build_beta.py`。字体二进制保持原样，未分发 Apple 系统字体。
 
 研序 Logo 为项目提供的原始品牌设计。商标、第三方名称和品牌不会因项目源码许可而授予对第三方品牌的权利。研序不是 OpenAI 官方产品，也不提供账号、订阅或模型访问权。
+
+新增猫咪头像、花园群头像为项目原创 SVG；雷达花园猫咪插画由内置 imagegen 基于项目设计稿生成，提示来源见 assets/radar/README.md。未分发 Apple 标志或系统字体；Apple 风格仅指界面设计方向。

@@ -54,7 +54,7 @@ class FakeRPC:
             self.events.put({'method':'turn/completed','params':{'threadId':'foreign','turn':{'id':turn,'status':'completed','items':[]}}})
             if self.mode == 'tool':
                 self.events.put({'method':'item/started','params':{'threadId':thread,'turnId':turn,'item':{'id':'bad','type':'commandExecution'}}})
-            output = {k:'失败和未知保留；尚未独立核验' for k in SCHEMA['required']}
+            output = {k:'失败和未知保留；尚未独立核验' for k in params.get('outputSchema', SCHEMA)['required']}
             if self.mode == 'invalid':
                 output = {'summary':'cannot accept incomplete output'}
             item = {'id':'final','type':'agentMessage','text':json.dumps(output,ensure_ascii=False)}
@@ -105,6 +105,33 @@ class ConnectionTests(unittest.TestCase):
         client = c.client
         c.configure({'enabled':False,'if_revision':c.revision})
         self.assertTrue(client.dead.is_set());self.assertFalse(c.available());self.assertEqual(c.status()['state'],'paused')
+
+    def test_discussion_role_model_schema_and_prompt_use_same_safe_protocol(self):
+        from ecosystem import REPLY_SCHEMA
+        self.enable();c=self.connection;client=c.client
+        out=c.analyze(self.snapshot,'p','run-1','discussion:role:second-model',
+            model_override='second-model',output_schema=REPLY_SCHEMA,prompt_override='合成讨论输入，无文件')
+        turn=next(p for m,p in client.calls if m=='turn/start')
+        self.assertEqual(set(out),set(REPLY_SCHEMA['required']))
+        self.assertEqual(turn['model'],'second-model');self.assertEqual(turn['effort'],'low')
+        self.assertEqual(turn['input'][0]['text'],'合成讨论输入，无文件')
+        self.assertEqual(turn['sandboxPolicy'],{'type':'readOnly','networkAccess':False})
+        self.assertIsNone(c.selected_model)  # Per-role selection does not change project settings.
+        c.accept(self.snapshot,'p','run-1','discussion:role:second-model',True)
+        with c.db() as db:self.assertEqual(db.execute('SELECT state FROM sessions').fetchone()[0],'idle')
+
+    def test_discussion_cancel_interrupts_turn_and_retains_review_boundary(self):
+        self.enable();c=self.connection;client=c.client
+        with self.assertRaisesRegex(RuntimeError,'讨论已停止'):
+            c.analyze(self.snapshot,'p','run-1','discussion:role',cancelled=lambda:True)
+        self.assertIn('turn/interrupt',[m for m,_ in client.calls])
+        with c.db() as db:self.assertEqual(db.execute('SELECT state FROM sessions').fetchone()[0],'needs_review')
+
+    def test_discussion_unadvertised_model_does_not_send(self):
+        self.enable();client=self.connection.client
+        with self.assertRaises(RuntimeError):
+            self.connection.analyze(self.snapshot,'p',1,model_override='invented-model')
+        self.assertNotIn('turn/start',[m for m,_ in client.calls])
 
     def test_resume_same_project_and_scope_isolation(self):
         self.enable();c = self.connection

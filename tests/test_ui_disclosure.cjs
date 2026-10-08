@@ -43,7 +43,7 @@ const chrome={},body=new Element('div'),app=new Element('div');
 body.append(panels.content,panels.inspector);
 let mounted=0,counter=1;
 const ctx={aiView:'project',aiProjectId:'p1',aiSelection:null,aiRefreshSequence:0,aiProject:null,aiToday:null,
-  data:{projects:[{id:'p1',name:'Fixture',goal:'目标',current_state:'旧说明：尚未绑定；UNKNOWN 保留。'}]},
+  data:{projects:[{id:'p1',name:'Fixture',goal:'目标',current_state:'旧说明：尚未绑定；UNKNOWN 保留。'},{id:'p2',name:'Second fixture'}]},
   $:id=>['content','inspector','agentConnectionTree'].includes(id)?panels[id]||null:chrome[id]||(chrome[id]=new Element('div',{id})),
   document:{querySelector:()=>app},aiInspectorOpen:false,pid:'p1',homeView:'projects',aiProjectPicker:()=>'',
   loadState:async()=>{},esc:s=>String(s??''),rdHumanText:s=>String(s??''),rdReadableText:s=>String(s??''),

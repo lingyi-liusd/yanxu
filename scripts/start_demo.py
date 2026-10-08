@@ -27,7 +27,7 @@ def run(port=None):
     with tempfile.TemporaryDirectory(prefix='yanxu-public-demo-') as directory:
         data = Path(directory)
         env = dict(os.environ, RESEARCH_DESK_DATA_DIR=str(data), PORT=str(port),
-                   OPEN_BROWSER='0', RESEARCH_DESK_RELEASE='2026.10.03-beta.16-demo')
+                   OPEN_BROWSER='0', RESEARCH_DESK_RELEASE='2026.10.08-source-preview.1-demo')
         for key in ('RESEARCH_FOCUS_API_URL', 'RESEARCH_FOCUS_API_KEY', 'RESEARCH_FOCUS_MODEL'):
             env.pop(key, None)
         # All feature policies start disabled in this new profile. No credentials are copied.
@@ -117,7 +117,7 @@ def run(port=None):
             status,_=request('/api/project/manager?project_id='+project_id)
             if status['enabled'] or status['used_today']:
                 raise RuntimeError('Demo must leave AI disabled and model use at zero')
-            print('Yanxu synthetic demo: '+base,flush=True)
+            print('续芽 synthetic demo: '+base,flush=True)
             print('选择「示例 · 个人作品发布」。合成记录 / AI disabled / model calls = 0.',flush=True)
             print('Ctrl-C stops the demo and removes its temporary profile.',flush=True)
             process.wait()

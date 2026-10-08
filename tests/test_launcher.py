@@ -8,11 +8,13 @@ class LauncherCase(unittest.TestCase):
    sock=socket.socket();sock.bind(('127.0.0.1',0));port=sock.getsockname()[1];sock.close()
    env=os.environ.copy();env.update(RESEARCH_DESK_DATA_DIR=data,PORT=str(port));env.pop('OPEN_BROWSER',None)
    args=[sys.executable,str(ROOT/'launcher.py'),'--no-open']
-   children=[subprocess.Popen(args,env=env,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True) for _ in range(2)]
+   launches=[args,[sys.executable,str(ROOT/'discussion_app.py'),'--no-open'],[sys.executable,str(ROOT/'radar_app.py'),'--no-open']]
+   children=[subprocess.Popen(command,env=env,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True) for command in launches]
    server_pid=None
    try:
-    for p in children:
+    for index,p in enumerate(children):
      out,err=p.communicate(timeout=12);self.assertEqual(p.returncode,0,(out,err))
+     if index:self.assertIn('/apps/'+('discussion' if index==1 else 'radar')+'/',out)
     url='http://127.0.0.1:'+str(port)+'/'
     with urllib.request.urlopen(url,timeout=3) as r:self.assertEqual(r.status,200)
     token=(pathlib.Path(data)/'api-token').read_text().strip()

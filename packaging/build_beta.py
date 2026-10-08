@@ -23,13 +23,16 @@ import zipfile
 SOURCE = Path(__file__).resolve().parents[1]
 VERSION = '2026.10.03-beta.16'
 PREVIOUS_VERSION = '2026.10.03-beta.15'
+GUIDE_PATH = 'packaging/TESTER-README.md'
+PREVIEW_DATA_NAME = None
+BUNDLE_IDENTIFIER = None
 DOCUMENT_WHEELS = ('vendor/pypdf-6.19.0-py3-none-any.whl',
                    'vendor/typing_extensions-4.15.0-py3-none-any.whl')
 DOCUMENT_SHA256 = {
     DOCUMENT_WHEELS[0]: '7e5d6e730e7dae87d560a2cee218b852f6498c8be61966f3cd02ead971e48d14',
     DOCUMENT_WHEELS[1]: 'f0fa19c6845758ab08074a0cfa8b7aecb71c999ca73d62883bc25cc018c4e548'}
 OPTIONAL_SOURCES = ('vendor/README.md', 'vendor/THIRD-PARTY-NOTICES.md')
-ALLOWLIST = ('index.html', 'server.py', 'agent_gateway.py', 'project_backup.py',
+ALLOWLIST = ('index.html', 'apps/shell.html', 'apps/shell.js', 'apps/shell.css', 'apps/links.js', 'app_launcher.py', 'discussion_app.py', 'radar_app.py', 'ecosystem.js','ecosystem_state.js','ecosystem_client.js', 'review_ui.js','chat_ui.js', 'ecosystem.css', 'ecosystem.py','group_chat.py', 'ecosystem_contracts.py', 'review_service.py','review_context.py','review_history.py', 'observation_service.py','result_observation.py', 'source_extractors.py', 'lineage_service.py', 'extension_contracts.py', 'source-packs/public-updates.v1.json', 'review-templates/solution-tradeoff.v1.json', 'radar_fetch.py', 'server.py', 'agent_gateway.py', 'project_backup.py',
              'agent_manager.py', 'agent_connection.py', 'registered_batches.py', 'management_runtime.py', 'project_continuity.py', 'action_contracts.py','result_review.py',
              'source_bridge.py', 'source_intake.py', 'source_index.py', 'workspace_registry.py', 'platform_support.py', 'launcher.py', 'mcp-server.js',
              'assets/yanxu-logo.png', 'assets/fonts/ChillRoundGothic-Bold.woff',
@@ -123,7 +126,7 @@ def map_sha256(files):
 
 def source_files():
     names = list(ALLOWLIST) + [name for name in OPTIONAL_SOURCES if (SOURCE / name).exists()]
-    names += ['packaging/beta_boot.py', 'packaging/self_check.py', 'packaging/TESTER-README.md',
+    names += ['packaging/beta_boot.py', 'packaging/self_check.py', GUIDE_PATH,
               'packaging/windows_install.py']
     for name in names:
         source = SOURCE / name
@@ -163,8 +166,11 @@ def copy_code(root):
     (root / 'beta_boot.py').write_text(release_text(
         (SOURCE / 'packaging/beta_boot.py').read_text(encoding='utf-8'),
         r"(RESEARCH_DESK_RELEASE\s*=\s*)['\"][^'\"]+['\"]"), encoding='utf-8')
+    if PREVIEW_DATA_NAME:
+        boot = root / 'beta_boot.py'
+        boot.write_text(boot.read_text(encoding='utf-8').replace('platform_support.default_data(beta=True)', 'platform_support.default_data(beta=True).with_name('+repr(PREVIEW_DATA_NAME)+')'), encoding='utf-8')
     shutil.copy2(SOURCE / 'packaging/self_check.py', root / 'self_check.py')
-    shutil.copy2(SOURCE / 'packaging/TESTER-README.md', root / 'README.md')
+    shutil.copy2(SOURCE / GUIDE_PATH, root / 'README.md')
     (root / 'app/AGENTS.md').write_text('# 研序测试版 · Agent 规则\n\n'
         '先读取当前项目目标、最新有效状态、交接和来源版本。AI摘要是建议，不是已确认事实或用户授权。\n'
         '在页面生成项目级 MCP 配置，服务地址使用18765端口，Node使用包内绝对路径。不要手工覆盖全局Codex配置。\n'
@@ -231,7 +237,7 @@ def runtime(root, platform, archives, staging):
 
 def manifest(root, platform, dependencies):
     # The tester guide belongs beside launchers and is covered by the manifest.
-    shutil.copy2(SOURCE / 'packaging/TESTER-README.md', root / 'README.md')
+    shutil.copy2(SOURCE / GUIDE_PATH, root / 'README.md')
     files = {}
     for path in sorted(root.rglob('*')):
         if path.is_file() and path != root / 'manifest.json' and '__pycache__' not in path.parts:
@@ -323,7 +329,7 @@ def archive_mac(bundle, path):
         staging=Path(directory)
         shutil.copytree(bundle,staging/bundle.name,symlinks=True)
         guide = bundle / 'Contents/Resources/README.md'
-        shutil.copy2(guide if guide.is_file() else SOURCE/'packaging/TESTER-README.md',staging/'README.md')
+        shutil.copy2(guide if guide.is_file() else SOURCE/GUIDE_PATH,staging/'README.md')
         subprocess.run(['/usr/bin/ditto','-c','-k','--sequesterRsrc',str(staging),str(path)],check=True)
 
 
@@ -364,7 +370,7 @@ def main():
         raise RuntimeError('Sources changed between platform copies; no release accepted')
     archive_mac(bundle,args.output/'研序测试版-macOS-Apple芯片.zip')
     archive(windows,args.output/'研序测试版-Windows-x64.zip')
-    shutil.copy2(SOURCE/'packaging/TESTER-README.md',args.output/'README.md')
+    shutil.copy2(SOURCE/GUIDE_PATH,args.output/'README.md')
     shutil.rmtree(staging)
     (args.output/'使用说明.txt').write_text('研序 '+VERSION+' · 私有内测\n\n'
         'Mac：Apple 芯片 macOS 12+，双击“研序测试版.app”；可拖入“应用程序”。退出应用会停止该版本后台。\n'

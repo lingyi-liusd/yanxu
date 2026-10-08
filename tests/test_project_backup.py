@@ -37,7 +37,7 @@ class BackupCase(unittest.TestCase):
         self.assertEqual(self.agent('result',{'action_id':aid,'outcome':'failure','summary':'negative result','source_ref':'fixture','source_version':'v1'})[0],200)
         code,_,backup=self.request('/api/backup');self.assertEqual(code,200)
         original_tables={'agents','actions','artifacts','evidence','action_results','decision_requests','proposals','project_events'}
-        self.assertEqual(set(backup['gateway']),original_tables|{'action_contracts','action_recoveries','result_reviews'})
+        self.assertEqual(set(backup['gateway']),original_tables|{'action_contracts','action_recoveries','result_reviews','ecosystem_items'})
         self.assertTrue(all(backup['gateway'][k] for k in original_tables))
         self.assertTrue(all(backup['gateway'][k]==[] for k in ('action_contracts','action_recoveries','result_reviews')))
         self.assertNotIn('token_hash',json.dumps(backup))
@@ -111,7 +111,7 @@ class BackupCase(unittest.TestCase):
         self.assertEqual(len(snapshots),1)
         snap=json.loads(snapshots[0].read_text())
         self.assertEqual(snap['format'],'research-desk-project-backup')
-        self.assertEqual(set(snap['gateway']),{'agents','actions','artifacts','evidence','action_results','decision_requests','proposals','project_events','action_contracts','action_recoveries','result_reviews'})
+        self.assertEqual(set(snap['gateway']),{'agents','actions','artifacts','evidence','action_results','decision_requests','proposals','project_events','action_contracts','action_recoveries','result_reviews','ecosystem_items'})
         self.assertNotIn('token_hash',json.dumps(snap))
         _,rev,state=self.request('/api/state');state['projects']=[];state['tasks']=[]
         self.assertEqual(self.request('/api/state',{'state':state,'ifRev':rev})[0],400)

@@ -12,6 +12,7 @@ import time
 import urllib.request
 import webbrowser
 import platform_support
+import ecosystem_contracts
 
 ROOT = Path(__file__).resolve().parent
 
@@ -55,7 +56,9 @@ def exclusive_lock(path):
             fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
             yield
 
-def start(port=8765, open_browser=True):
+def start(port=8765, open_browser=True, app='yanxu'):
+    if app not in ('yanxu', 'discussion', 'radar'):
+        raise ValueError('未知 App')
     if not 1024 <= port <= 65535:
         raise ValueError('端口必须在1024–65535之间')
     os.umask(0o077)
@@ -67,6 +70,8 @@ def start(port=8765, open_browser=True):
         existing = health(url)
         if existing and existing.get('launch_id') != identity:
             raise RuntimeError('端口正由另一份研序占用，请先退出旧版本；不会连接或停止其他实例。')
+        if existing and existing.get('build_id') != ecosystem_contracts.build_id():
+            raise RuntimeError('核心与当前界面版本不同，请先退出该版本再重新启动；不会混用版本。')
         if not healthy(url, identity):
             env = os.environ.copy()
             env.update(PORT=str(port), OPEN_BROWSER='0', RESEARCH_DESK_DATA_DIR=str(data), RESEARCH_DESK_LAUNCH_ID=identity)
@@ -85,9 +90,10 @@ def start(port=8765, open_browser=True):
                         child.terminate()
                     raise RuntimeError('研序启动失败；日志位于 ' + str(data / 'server.log') + '。请检查端口占用。')
                 time.sleep(.15)
-    if open_browser and not webbrowser.open(url):
-        raise RuntimeError('服务已启动，请手动打开 ' + url)
-    print('研序可用：' + url)
+    target = url if app == 'yanxu' else url + 'apps/' + app + '/'
+    if open_browser and not webbrowser.open(target):
+        raise RuntimeError('服务已启动，请手动打开 ' + target)
+    print({'yanxu':'研序', 'discussion':'讨论室', 'radar':'雷达'}[app] + '可用：' + target)
     return 0
 
 if __name__ == '__main__':

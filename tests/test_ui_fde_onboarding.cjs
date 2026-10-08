@@ -1,0 +1,18 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert'),path=require('path');
+const root=path.join(__dirname,'..'),ctx={};vm.createContext(ctx);vm.runInContext(fs.readFileSync(path.join(root,'chat_ui.js'),'utf8'),ctx);
+const status=ctx.YanxuChat.memberStatus,codex={engine:'codex',model:'m'};
+for(const state of [{},{connection:{connected:false}},{connection:{connected:true,authenticated:false}},{connection:{connected:true,authenticated:true,model_selection:{models:[{model:'other'}]}}}])assert(status(state,codex).blocked);
+assert(!status({connection:{connected:true,authenticated:true,model_selection:{models:[{model:'m'}]}}},codex).blocked);
+const external={engine:'external',agent_id:'a'};
+assert(status({agents:[]},external).blocked);
+assert(status({agents:[{id:'a',status:'configured',permission:'PROPOSE'}]},external).blocked);
+assert(status({agents:[{id:'a',status:'online',permission:'READ'}]},external).blocked);
+const historical=status({agents:[{id:'a',status:'online',permission:'PROPOSE'}]},external);assert(!historical.blocked);assert.equal(historical.label,'响应待确认');
+const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
+const linkSource=html.slice(html.indexOf('function rdOpenLinkedRecord(query)'),html.indexOf('\nloadState().then',html.indexOf('function rdOpenLinkedRecord(query)')));
+const calls=[],data={projects:[{id:'p'},{id:'other'},{id:'personal',app_owner:'discussion'}],tasks:[{id:'t',project:'p'},{id:'wrong',project:'other'}],decisions:[]};
+const linkCtx={data,URLSearchParams,openHomeTask:id=>calls.push(['task',id]),aiOpen:v=>calls.push(['view',v]),toast:t=>calls.push(['notice',t]),render(){}};vm.createContext(linkCtx);vm.runInContext(linkSource,linkCtx);
+assert(linkCtx.rdOpenLinkedRecord(new URLSearchParams('project=p&task=t')));assert.equal(calls[0][1],'t');
+calls.length=0;linkCtx.rdOpenLinkedRecord(new URLSearchParams('project=p&task=wrong'));assert(!calls.some(c=>c[0]==='task'));assert(calls.some(c=>c[0]==='notice'));
+calls.length=0;assert(!linkCtx.rdOpenLinkedRecord(new URLSearchParams('project=personal&task=t')));assert(!linkCtx.rdOpenLinkedRecord(new URLSearchParams('project=missing')));assert.equal(calls.length,0);
+console.log('FDE onboarding PASS: disconnected/login/missing-model gates; external handshake versus presence; exact project-bound task links and deleted/cross-project fallback; no model/API writes');

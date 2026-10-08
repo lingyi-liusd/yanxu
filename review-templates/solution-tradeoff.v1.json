@@ -1,0 +1,85 @@
+{
+  "schema_version": "yanxu.review-template.v1",
+  "id": "solution-tradeoff",
+  "name": "需求与方案取舍",
+  "question_prompts": [
+    "现在要决定什么？",
+    "有哪些不能违反的条件？",
+    "本次选取哪些材料？"
+  ],
+  "baseline": {
+    "executors": 1,
+    "rounds": 1,
+    "calls": 1
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "recommendation": {
+        "type": "string"
+      },
+      "alternatives": {
+        "type": "string"
+      },
+      "tradeoffs": {
+        "type": "string"
+      },
+      "disagreements": {
+        "type": "string"
+      },
+      "unknowns": {
+        "type": "string"
+      },
+      "next_step": {
+        "type": "string"
+      },
+      "recheck_conditions": {
+        "type": "string"
+      },
+      "citations": {
+        "type": "array",
+        "maxItems": 24,
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "claim": {
+              "type": "string"
+            },
+            "material_id": {
+              "type": "string"
+            },
+            "locator": {
+              "type": "string"
+            },
+            "relation": {
+              "type": "string",
+              "enum": [
+                "source",
+                "inference",
+                "unknown"
+              ]
+            }
+          },
+          "required": [
+            "claim",
+            "material_id",
+            "locator",
+            "relation"
+          ]
+        }
+      }
+    },
+    "required": [
+      "recommendation",
+      "alternatives",
+      "tradeoffs",
+      "disagreements",
+      "unknowns",
+      "next_step",
+      "recheck_conditions",
+      "citations"
+    ],
+    "additionalProperties": false
+  }
+}

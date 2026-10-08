@@ -4,6 +4,7 @@ import WebKit
 final class DeskApp: NSObject, NSApplicationDelegate, NSWindowDelegate, WKUIDelegate, WKNavigationDelegate, WKDownloadDelegate {
     var window: NSWindow!
     var web: WKWebView!
+    var focusWindows: [String: NSWindow] = [:]
     let resources = Bundle.main.resourceURL!
     var ready = false
     var terminating = false
@@ -56,6 +57,8 @@ final class DeskApp: NSObject, NSApplicationDelegate, NSWindowDelegate, WKUIDele
         let item = NSMenuItem()
         let appMenu = NSMenu()
         appMenu.addItem(withTitle: "显示研序窗口", action: #selector(showWindow), keyEquivalent: "")
+        appMenu.addItem(withTitle: "打开评审专注窗口", action: #selector(showReview), keyEquivalent: "1")
+        appMenu.addItem(withTitle: "打开观察专注窗口", action: #selector(showObserve), keyEquivalent: "2")
         appMenu.addItem(withTitle: "登录 Codex（仅测试版）", action: #selector(login), keyEquivalent: "l")
         appMenu.addItem(withTitle: "打开测试版数据文件夹", action: #selector(showData), keyEquivalent: "")
         backgroundItem = appMenu.addItem(withTitle: "关闭窗口后保持 Agent 运行", action: #selector(toggleBackground), keyEquivalent: "")
@@ -158,6 +161,33 @@ final class DeskApp: NSObject, NSApplicationDelegate, NSWindowDelegate, WKUIDele
         window.makeKeyAndOrderFront(nil)
         NSApplication.shared.activate(ignoringOtherApps: true)
     }
+    @objc func showReview() { _ = focusWindow(URL(string: "http://127.0.0.1:18765/apps/discussion/")!) }
+    @objc func showObserve() { _ = focusWindow(URL(string: "http://127.0.0.1:18765/apps/radar/")!) }
+    func focusWindow(_ url: URL, configuration: WKWebViewConfiguration? = nil) -> WKWebView? {
+        guard ready && !terminating else { return nil }
+        let key = configuration == nil ? url.path : url.path + "#" + UUID().uuidString
+        if let existing = focusWindows[key], let child = existing.contentView as? WKWebView {
+            if child.url?.absoluteString != url.absoluteString { child.load(URLRequest(url: url)) }
+            existing.makeKeyAndOrderFront(nil); return child
+        }
+        let childWindow = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1160, height: 780),
+                                   styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
+        childWindow.title = url.path.contains("radar") ? "研序 · 观察" : url.path.contains("discussion") ? "研序 · 评审" : "研序 · 项目"
+        childWindow.minSize = NSSize(width: 680, height: 520)
+        childWindow.isReleasedWhenClosed = false; childWindow.delegate = self
+        let config = configuration ?? WKWebViewConfiguration()
+        if configuration == nil { config.websiteDataStore = web.configuration.websiteDataStore }
+        let child = WKWebView(frame: .zero, configuration: config)
+        child.uiDelegate = self; child.navigationDelegate = self
+        childWindow.contentView = child; childWindow.center(); childWindow.makeKeyAndOrderFront(nil)
+        focusWindows[key] = childWindow
+        if configuration == nil { child.load(URLRequest(url: url)) }
+        return child
+    }
+    func windowWillClose(_ notification: Notification) {
+        guard let closing = notification.object as? NSWindow, closing !== window else { return }
+        if let entry = focusWindows.first(where: { $0.value === closing }) { focusWindows.removeValue(forKey: entry.key) }
+    }
     func windowShouldClose(_ sender: NSWindow) -> Bool {
         if keepRunningAfterClose && !terminating {
             sender.orderOut(nil)
@@ -223,7 +253,7 @@ final class DeskApp: NSObject, NSApplicationDelegate, NSWindowDelegate, WKUIDele
                   completionHandler: @escaping (URL?) -> Void) {
         let panel = NSSavePanel()
         panel.nameFieldStringValue = suggestedFilename
-        panel.beginSheetModal(for: window) { result in completionHandler(result == .OK ? panel.url : nil) }
+        panel.beginSheetModal(for: NSApplication.shared.keyWindow ?? window) { result in completionHandler(result == .OK ? panel.url : nil) }
     }
     func webView(_ webView: WKWebView, runOpenPanelWith parameters: WKOpenPanelParameters,
                  initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping ([URL]?) -> Void) {
@@ -231,11 +261,16 @@ final class DeskApp: NSObject, NSApplicationDelegate, NSWindowDelegate, WKUIDele
         panel.allowsMultipleSelection = parameters.allowsMultipleSelection
         panel.canChooseDirectories = parameters.allowsDirectories
         panel.canChooseFiles = true
-        panel.beginSheetModal(for: window) { result in completionHandler(result == .OK ? panel.urls : nil) }
+        panel.beginSheetModal(for: webView.window ?? window) { result in completionHandler(result == .OK ? panel.urls : nil) }
     }
     func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration,
                  for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
-        if let url = navigationAction.request.url, ["http", "https"].contains(url.scheme ?? "") { NSWorkspace.shared.open(url) }
+        if let url = navigationAction.request.url {
+            if url.host == "127.0.0.1" && url.port == 18765 {
+                return focusWindow(url, configuration: configuration)
+            }
+            if ["http", "https"].contains(url.scheme ?? "") { NSWorkspace.shared.open(url) }
+        }
         return nil
     }
     func webView(_ webView: WKWebView, runJavaScriptAlertPanelWithMessage message: String,

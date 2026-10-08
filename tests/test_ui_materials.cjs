@@ -42,7 +42,7 @@ assert(css.includes('.rd-today-primary:active, .rd-dialog-actions .rd-primary:ac
 assert(css.includes('background: Highlight; color: HighlightText;'));
 assert.equal((html.match(/<\/body>/g) || []).length, 1);
 assert.equal((html.match(/data-ui-icon=/g)||[]).length,9,'Consistent SVG navigation, not font glyphs');
-assert.equal((html.match(/src="\/assets\/yanxu-logo.png"/g)||[]).length,1,'Keep the original brand asset');
+assert(html.includes('aria-label="续芽标志"'), 'Show the user-approved new brand');
 assert.equal(require('crypto').createHash('sha256').update(fs.readFileSync(path.join(__dirname,'../assets/yanxu-logo.png'))).digest('hex'),
  '85d14b2173d8752195f4b4a785c1fbfc78b92140dff38bfe8c8680ce75f3aa9b','Logo pixels must not change');
 assert(/class="rd-companion-silhouette" aria-hidden="true" focusable="false"/.test(html),'Decoration must not become content or a control');

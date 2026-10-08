@@ -108,6 +108,10 @@ def schema(c):
         if table == 'action_results' and 'source_version' not in columns:
             c.execute("ALTER TABLE action_results ADD COLUMN source_version TEXT NOT NULL DEFAULT ''")
     result_review.schema(c)
+    c.execute('CREATE TABLE IF NOT EXISTS ecosystem_items(id TEXT PRIMARY KEY, project_id TEXT NOT NULL, kind TEXT NOT NULL, body TEXT NOT NULL)')
+    c.execute('CREATE INDEX IF NOT EXISTS ecosystem_project ON ecosystem_items(project_id,kind)')
+    from ecosystem import schema as ecosystem_schema
+    ecosystem_schema(c)
     c.execute("INSERT OR REPLACE INTO meta(k,v) VALUES('agent_schema_version','5')")
 
 
@@ -249,13 +253,20 @@ class Gateway:
         permission = str(body.get('permission') or 'EXECUTE').upper()
         if permission not in ('READ','PROPOSE','EXECUTE'):
             raise GatewayError('权限必须是 READ / PROPOSE / EXECUTE')
-        token = secrets.token_urlsafe(32)
-        aid = 'agent-' + secrets.token_hex(8)
         with self.connect() as c:
+            if 'ifRev' in body and not c.in_transaction:
+                c.execute('BEGIN IMMEDIATE')
             self.project(c, project_id)
             mode=body.get('contract_mode','legacy')
             if mode not in ('legacy','strict_v2'):
                 raise GatewayError('contract_mode 须为 legacy 或 strict_v2')
+            if 'ifRev' in body and (type(body['ifRev']) is not int or body['ifRev']!=self.get_rev(c)):
+                raise GatewayError('项目记录已变化，请重新读取后登记',409)
+            if body.get('dry'):
+                return {'preview':True,'project_id':project_id,'name':name,'type':kind,
+                        'permission':permission,'contract_mode':mode,'rev':self.get_rev(c)}
+            token = secrets.token_urlsafe(32)
+            aid = 'agent-' + secrets.token_hex(8)
             c.execute('''INSERT INTO agents VALUES(?,?,?,?,?,?,?,?,?,?,?)''',
                       (aid,project_id,name,kind,permission,hashlib.sha256(token.encode()).hexdigest(),
                        encoded(['code','terminal','file'] if name.lower() == 'codex' else []),
@@ -295,6 +306,7 @@ class Gateway:
                 codex_command = 'CODEX_HOME=' + shlex.quote(os.environ['CODEX_HOME']) + ' ' + codex_command
         contract = ('# Research Desk Project Agent Contract\n\nProject: '+project_id+'\n'
                     'Before work call project.get_context; read negative results, constraints, blockers and pending decisions. '
+                    'For a human-started discussion, read project.get_discussion_requests and reply only as your assigned role with project.reply_discussion; this grants no task execution or evidence verification authority. '
                     'Claim one bounded Action, report progress, register sourced artifacts and results. '
                     'Do not overwrite human notes, prior evidence or the project goal. '
                     'Request a human decision for direction, scope, constraints or destructive changes. '
