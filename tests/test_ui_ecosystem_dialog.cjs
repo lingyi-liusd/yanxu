@@ -1,0 +1,21 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert'),path=require('path');
+const deferred=()=>{let resolve,reject;const promise=new Promise((a,b)=>{resolve=a;reject=b;});return {promise,resolve,reject};};
+const source=fs.readFileSync(path.join(__dirname,'../ecosystem.js'),'utf8');
+const modal={open:false,form:null,set innerHTML(value){this.form={entries:[],submit:{disabled:false},error:{textContent:''},querySelector(s){return s==='[type=submit]'?this.submit:this.error;}};this.cancel={};},querySelector(s){return s==='form'?this.form:s==='[data-cancel]'?this.cancel:s==='[type=submit]'?this.form.submit:this.form.error;},close(){this.open=false;},showModal(){this.open=true;}};
+const ctx={aiProjectId:'p1',aiView:'discussion',eco:{},$:()=>modal,FormData:class{constructor(f){return f.entries;}},document:{},toast:()=>{}};
+vm.createContext(ctx);vm.runInContext(source.slice(source.indexOf('  function dialog('),source.indexOf('  const input=',source.indexOf('  function dialog('))),ctx);
+const event=(form,submitter=form.submit)=>({target:form,submitter,preventDefault(){}});
+(async()=>{
+ const wait=deferred();let calls=0;
+ ctx.dialog('Test','','Save',async()=>{calls++;await wait.promise;});let form=modal.form;
+ const saving=form.onsubmit(event(form));form.submit.disabled=false;const duplicate=form.onsubmit(event(form));
+ assert.equal(calls,1,'Changing readiness must not unlock an in-flight callback');wait.resolve();await Promise.all([saving,duplicate]);assert.equal(modal.open,false);
+ ctx.dialog('Enter','','Save',async()=>{calls++;});form=modal.form;await form.onsubmit(event(form,null));assert.equal(calls,2,'Implicit submit works with null submitter');
+ const old=deferred();ctx.dialog('Old','','Save',async()=>old.promise);form=modal.form;const pending=form.onsubmit(event(form));
+ ctx.dialog('Replacement','','Save',async()=>{});const fresh=modal.form;old.reject(Error('Old failure'));await pending;
+ assert.equal(modal.open,true);assert.equal(fresh.error.textContent,'');assert.equal(ctx.eco.pendingIntent,null);
+ let current;const navigation=deferred();ctx.dialog('Navigation','','Save',async(values,node,isCurrent)=>{await navigation.promise;current=isCurrent();});form=modal.form;
+ const navigating=form.onsubmit(event(form));ctx.aiProjectId='p2';navigation.resolve();await navigating;assert.equal(current,false,'Saved callbacks must not navigate a newer project');
+ ctx.aiProjectId='p1';let submitted=false;ctx.dialog('Closed','','Save',async()=>{submitted=true;});form=modal.form;modal.close();await form.onsubmit(event(form));assert.equal(submitted,false,'Closed forms cannot submit');
+ console.log('Ecosystem dialog PASS: single-flight callback, implicit submit, replaced form failure, stale navigation and closed form');
+})().catch(e=>{console.error(e);process.exit(1)});

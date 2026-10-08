@@ -1,0 +1,16 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert'),path=require('path');
+const source=fs.readFileSync(path.join(__dirname,'../ecosystem.js'),'utf8');
+const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ctx={esc,labels:{failed:'本轮失败',completed:'轮次已完成'},button:(a,label,extra)=>`<button data-eco="${a}" ${extra}>${label}</button>`,adoptedLink:r=>`<a href="/?task=${esc(r.adopted_id)}">查看项目任务</a>`};vm.createContext(ctx);
+vm.runInContext(source.slice(source.indexOf('  function groupRoundActions('),source.indexOf('  let chatRendered=',source.indexOf('  function groupRoundActions('))),ctx);
+const room=(id,extra={})=>({id,title:id,question:`Question ${id}`,status:'completed',messages:[{kind:'agent'}],...extra});
+const state={rooms:[room('earlier',{question:'<script>original source</script>',status:'failed'}),room('adopted',{adopted_id:'task-original'}),room('latest'),room('running',{active:true}),room('empty',{messages:[]}),room('other-group')]};
+const group={entries:['', 'earlier','adopted','latest','running','empty'].map(room_id=>({room_id}))};
+const before=JSON.stringify({state,group}),html=ctx.groupRoundActions(state,group);
+assert(html.includes('data-id="earlier"'));assert(html.includes('data-id="adopted"'));assert(html.includes('data-id="latest"'));
+for(const id of ['running','empty','other-group'])assert(!html.includes(`data-id="${id}"`));
+assert(html.includes('之前的讨论 · 2'));assert(html.includes('查看第 1 次讨论'));assert(html.includes('本轮失败'));assert(html.includes('已采纳'));assert(html.includes('&lt;script&gt;'));assert(!html.includes('<script>'));
+assert.equal(JSON.stringify({state,group}),before,'Read-only history does not adopt or mutate records');
+assert.equal(ctx.groupRoundActions(state,{entries:[]}), '');
+state.rooms[2].adopted_id='existing-task';const adopted=ctx.groupRoundActions(state,group);assert(adopted.includes('/?task=existing-task'));assert(!adopted.includes('data-id="latest"'),'Latest adopted round links to its saved record');
+console.log('Group round history PASS: earlier/unadopted/adopted/failed rounds, original IDs, active/empty/foreign exclusion and escaped source; no model calls');

@@ -6,7 +6,7 @@
 
 > 2026-10-08 发布的是生态**源码预览版**。Releases 中的桌面 beta.16 是历史安装包，不包含本版新界面和群聊/雷达能力。真实模型质量、用户收益和跨平台安装仍有验证缺口。
 
-[English](README.en.md) · [源码发布](https://github.com/lingyi-liusd/yanxu/releases/tag/v2026.10.08-source-preview.1) · [架构](docs/ecosystem/ARCHITECTURE-V2.md)
+[English](README.en.md) · [源码发布](https://github.com/lingyi-liusd/yanxu/releases/tag/v2026.10.08-source-preview.2) · [架构](docs/ecosystem/ARCHITECTURE-V2.md)
 
 ## 三个独立入口
 
@@ -17,7 +17,7 @@
 | 雷达 | 关注公开来源，比较前后变化，推送待讨论项 | `/apps/radar/` |
 
 ![工作台：合成示例记录](docs/images/workbench-20261008.png)
-![聊天室：合成待讨论项与既有演示消息](docs/images/discussion-20261008.png)
+![聊天室：合成讨论回复与采纳入口](docs/images/discussion-20261008.png)
 ![雷达：合成变化与真实状态展示](docs/images/radar-20261008.png)
 
 界面采用奶白与浅绿配色、猫咪成员头像和花园群头像。截图展示合成流程，不能代表真实模型效果。
@@ -60,7 +60,7 @@ python3 scripts/start_demo.py
 python3 scripts/verify_release.py
 ```
 
-[发布验证范围](docs/receipts/source-preview-20261008.json)明确区分软件回归、合成闭环和真实模型效果。尚未完成 Windows 新版原生安装、长期稳定性和独立用户收益验收；深色界面未进行本版浏览器验收。
+[发布验证范围](docs/receipts/source-preview-v2-20261008.json)明确区分软件回归、合成闭环和真实模型效果。尚未完成 Windows 新版原生安装、长期稳定性和独立用户收益验收。本版深浅色与窄屏已完成本机浏览器走查。
 
 [贡献说明](CONTRIBUTING.md) · [安全说明](SECURITY.md) · [第三方许可](THIRD-PARTY-NOTICES.md)
 

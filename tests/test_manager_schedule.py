@@ -16,7 +16,8 @@ class ScheduleTests(unittest.TestCase):
         self.tmp=tempfile.TemporaryDirectory()
         self.values={'project':{'id':'p','goal':'保留原目标'},'tasks':[]}
         self.calls=[]
-        self.now=2000000000
+        # Keep the 25 quarter-hour calls within one local date in every timezone.
+        self.now=datetime.datetime(2033,5,18,8,0).timestamp()
         self.clock=patch('agent_manager.time.time',side_effect=lambda:self.now)
         self.clock.start()
         self.m=self.make()
@@ -65,6 +66,18 @@ class ScheduleTests(unittest.TestCase):
         s=self.m.status('p');self.assertEqual(len(self.calls),25);self.assertEqual(s['used_today'],25)
         self.assertIsNone(s['max_calls_per_day']);self.assertIsNone(s['resume_brief']['handoff']['management_budget']['remaining_calls'])
         self.assertTrue(s['resume_brief']['handoff']['management_budget']['unlimited'])
+
+    def test_daily_usage_rolls_over_without_erasing_previous_calls(self):
+        self.now=datetime.datetime(2033,5,18,23,30).timestamp()
+        self.enable(15)
+        for title in ('before-midnight','after-midnight'):
+            self.values['tasks']=[{'id':'t','title':title}]
+            self.now+=900;self.m.tick()
+            self.assertEqual(self.m.status('p')['used_today'],1)
+        self.assertEqual(len(self.calls),2)
+        with self.m.db() as c:
+            rows=c.execute('SELECT day,count(*) FROM call_usage GROUP BY day ORDER BY day').fetchall()
+        self.assertEqual([(r[0],r[1]) for r in rows],[('2033-05-18',1),('2033-05-19',1)])
 
     def test_cap_and_schedule_change_preserves_generation_queue_failure_and_usage(self):
         self.m.configure('p',{'enabled':True,'max_calls_per_day':1,'consent':'codex-project-records-v1'})

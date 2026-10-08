@@ -1,0 +1,66 @@
+{
+  "release": "v2026.10.08-source-preview.2",
+  "date": "2026-10-08",
+  "distribution": "source preview only",
+  "license": "MIT",
+  "public_history_base": "449ab8dc711fbb8bc2e0f51dd5910baf446421b5",
+  "verification": {
+    "python": {
+      "status": "PASS",
+      "discovered": 591,
+      "skipped": 1
+    },
+    "node": {
+      "status": "PASS",
+      "test_files": 44
+    },
+    "isolated_browser_closure": {
+      "status": "PASS",
+      "fixture": "isolated synthetic source and deterministic fake executor",
+      "flow": [
+        "baseline",
+        "changed source",
+        "pending push without execution",
+        "browser consent",
+        "one synthetic reply",
+        "browser adoption into selected project",
+        "browser task deep link and rationale",
+        "HTTP source version and UNVERIFIED readback"
+      ],
+      "one_group_entry": true,
+      "one_fake_reply": true,
+      "inbox_discussed": true,
+      "pending_empty": true,
+      "source_version_retained": true,
+      "task_unverified": true,
+      "new_real_model_calls": 0,
+      "real_source_fetches": 0,
+      "browser_warnings_errors": 0,
+      "duplicate_browser_delivery_rejected_by_http": true,
+      "duplicate_dry_preserves_rev": true
+    },
+    "light_dark_narrow_browser": "PASS local implementation; same public runtime JS/CSS bytes",
+    "frontend_compatibility": "No backend/schema changes",
+    "inline_blocks_compiled": 10
+  },
+  "privacy": {
+    "includes_runtime_data": false,
+    "includes_credentials": false,
+    "includes_private_model_inputs": false,
+    "includes_local_development_history": false,
+    "screenshots": "Final public-copy UI with synthetic fixture data only",
+    "scan_exceptions": [
+      "Generic thread-link UUID placeholder in index.html",
+      "Synthetic key literals in tests/test_workspace_adversarial.py"
+    ],
+    "limitations": "Explicit file and byte-pattern checks are not an independent security audit"
+  },
+  "remaining_gates": {
+    "new_native_installers": "NOT_BUILT",
+    "Windows_native": "NOT_RUN",
+    "real_model_quality": "PARTIAL from earlier bounded acceptance, unchanged",
+    "public_source_reliability": "UNKNOWN",
+    "independent_user_benefit": "UNKNOWN",
+    "new_real_model_calls": 0
+  }
+}

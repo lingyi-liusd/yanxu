@@ -24,6 +24,8 @@ The stack uses vanilla JavaScript/HTML/CSS, Python, SQLite and optional project-
 
 ![Radar with synthetic change material](docs/images/radar-20261008.png)
 
-Run `python3 scripts/verify_release.py` for isolated source regression. See the [release receipt](docs/receipts/source-preview-20261008.json) for evidence and remaining gaps, and the [Chinese overview](README.md) for screenshots and architecture links.
+V2 includes compact cat member cards, visible send scope, previous discussion links, shared light/dark themes, and guarded asynchronous submissions. The full flow was exercised with a synthetic source and a fake executor in an isolated browser environment; real model quality and user value remain unvalidated.
+
+Run `python3 scripts/verify_release.py` for isolated source regression. See the [release receipt](docs/receipts/source-preview-v2-20261008.json) for evidence and remaining gaps, and the [Chinese overview](README.md) for screenshots and architecture links.
 
 Original source is MIT licensed. Third-party components retain their licenses. This is an independent personal project, not an official OpenAI or Apple product.

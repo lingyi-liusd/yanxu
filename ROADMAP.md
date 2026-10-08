@@ -1,6 +1,6 @@
 # 路线图
 
-当前版本：2026.10.03-beta.16，公开测试版。以下是改进方向，不是完成声明或交付日期承诺。
+当前源码：2026.10.08-source-preview.2，续芽生态源码预览。桌面 beta.16 是历史安装包，不含当前三入口界面与群聊 / 雷达能力。以下是改进方向，不是完成声明或交付日期承诺。
 
 ## 当前开发分支
 
@@ -27,7 +27,7 @@
 
 # English · Roadmap
 
-Current release: 2026.10.03-beta.16, public beta. These are proposed improvements, not completed features or delivery-date commitments.
+Current source: 2026.10.08-source-preview.2, Xuya ecosystem source preview. Desktop beta.16 is a historical installer and does not contain the current peer apps, group chat or radar. These are proposed improvements, not completed features or delivery-date commitments.
 
 - [ ] Native Windows 10/11 x64 installation, shortcuts, directory selection and shutdown acceptance.
 - [ ] First install, login, quit and restart of the current Mac package on an independent machine.

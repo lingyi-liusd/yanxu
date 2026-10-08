@@ -8,7 +8,7 @@
   const active = () => ['discussion','radar'].includes(aiView);
   const safeState = () => domain.current(aiProjectId);
   const button = (action,label,extra='') => '<button class="eco-button '+(extra.includes('class="eco-primary"')?'eco-primary':'')+'" type="button" data-eco="'+action+'" '+extra.replace('class="eco-primary"','')+'>'+label+'</button>';
-  const empty = (title,copy,actions='') => '<div class="eco-empty"><h3>'+title+'</h3><p>'+copy+'</p><div class="eco-actions">'+actions+'</div></div>';
+  const empty = (title,copy,actions='') => '<div class="eco-empty"><span class="eco-empty-cat" aria-hidden="true">'+(typeof YanxuChat!=='undefined'?YanxuChat.catSVG(0):'')+'</span><h3>'+title+'</h3><p>'+copy+'</p><div class="eco-actions">'+actions+'</div></div>';
   const age = value => value ? new Date(value).toLocaleString('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '尚未检查';
   const selected = kind => (safeState()?.[kind==='inbox'?'inbox':kind+'s'] || []).find(i => i.id === eco.selection);
 
@@ -16,7 +16,7 @@
     store:domain, scope:()=>({project:aiProjectId,view:aiView,active:active()}),
     request:(path,body)=>api(path,body), captureIntent:()=>eco.pendingIntent,
     intentValid:intent=>!intent||(intent.chat?intent.valid():(intent.project===aiProjectId&&intent.view===aiView&&intent.modal.open&&intent.modal.querySelector('form')===intent.form&&JSON.stringify([...new FormData(intent.form)])===intent.payload)),
-    afterWrite:()=>loadState(), onChange:()=>render(),
+    afterWrite:()=>loadState(), onChange:()=>render(), onWriteWarning:message=>toast(message),
     onRead:result=>{if(typeof appUpdateBadge==='function')appUpdateBadge(result.inbox||[]);}
   });
   async function refresh() { return client.refresh(); }
@@ -117,41 +117,54 @@
   }
 
 
+  function groupRoundActions(state,group){
+    const rounds=(group.entries||[]).map(entry=>(state.rooms||[]).find(r=>r.id===entry.room_id)).filter(Boolean)
+      .map((room,index)=>({room,number:index+1})).filter(({room})=>!room.active&&room.messages?.some(m=>m.kind==='agent')).reverse();
+    if(!rounds.length)return '';
+    const [{room:latest},...previous]=rounds;
+    const next=latest.adopted_id?adoptedLink(latest):button('open-group-review','整理本轮观点并保存下一步','data-id="'+esc(latest.id)+'"');
+    const history=previous.length?'<details class="chat-round-history"><summary>之前的讨论 · '+previous.length+'</summary><ol>'+previous.map(({room,number})=>
+      '<li><p>'+esc(room.question||room.title)+'<small>'+esc(labels[room.status]||room.status)+' · '+(room.adopted_id?'已采纳':'尚未采纳')+'</small></p>'+button('open-group-review','查看第 '+number+' 次讨论','data-id="'+esc(room.id)+'"')+'</li>').join('')+'</ol></details>':'';
+    return '<div class="chat-system eco-next-step">'+next+'</div>'+history;
+  }
+
   let chatRendered=null;
   function chatContent(state,host){
     if(chatRendered)YanxuChat.capture(host,chatRendered.project,chatRendered.id);
     const group=selected('group');
     host.innerHTML=(domain.error?'<p class="eco-notice" role="alert">'+esc(domain.error)+'</p>':'')+YanxuChat.render(state,group,eco.filter,esc,age,button);
-    if(group){
-      const latest=[...(group.entries||[])].reverse().map(e=>(state.rooms||[]).find(r=>r.id===e.room_id)).find(r=>r&&!r.active&&r.messages?.some(m=>m.kind==='agent'));
-      if(latest){const feed=host.querySelector('.chat-feed');feed.insertAdjacentHTML('beforeend','<div class="chat-system eco-next-step">'+(latest.adopted_id?adoptedLink(latest):button('open-group-review','整理本轮观点并保存下一步','data-id="'+esc(latest.id)+'"'))+'</div>');}
-    }
+    if(group)host.querySelector('.chat-feed').insertAdjacentHTML('beforeend',groupRoundActions(state,group));
     chatRendered=group?{project:aiProjectId,id:group.id}:null;
     bind(host);YanxuChat.restore(host,aiProjectId,group);
     const search=host.querySelector('#chatSearch');search.oninput=()=>{eco.filter=search.value;content();const next=host.querySelector('#chatSearch');next.focus();};
     const form=host.querySelector('#chatComposer');if(!form)return;
     const origin={project:aiProjectId,id:group.id,view:aiView};
+    let submitting=false;
+    const sameConversation=()=>aiProjectId===origin.project&&aiView===origin.view&&eco.tab==='groups'&&eco.selection===origin.id;
     const payload=()=>JSON.stringify([...new FormData(form)]);
     const update=()=>{
       const ids=[...form.querySelectorAll('[name=reply]:checked')].map(n=>n.value), members=group.members.filter(m=>ids.includes(m.id)), names=members.map(m=>m.name);
       const blocked=members.filter(m=>YanxuChat.memberStatus(state,m).blocked);
       form.querySelector('[data-reply-target]').textContent=ids.length===group.members.length&&ids.length?'＠ 全体成员':ids.length?'＠ '+names.join('、'):'仅记录';
-      const submit=form.querySelector('[type=submit]'); submit.disabled=!!group.active_room_id || !!blocked.length;
-      submit.textContent=ids.length?'发送':'保存文字';submit.title=blocked.length?'先连接或取消选择暂不可用的成员':ids.length?'发送给 '+names.join('、'):'只保存文字';
+      const submit=form.querySelector('[type=submit]'); submit.disabled=submitting || !!group.active_room_id || !!blocked.length;
+      submit.textContent=ids.length?'发送':'保存文字';
+      const scope=form.querySelector('[data-send-scope]'),consent=form.querySelector('[data-send-consent]');
+      if(scope)scope.textContent=ids.length?'最近 '+form.querySelector('[name=history]').value+' 条历史 · 空间简介':'仅保存在此群聊';
+      if(consent)consent.textContent=ids.length?'发送本条消息、选定历史与空间简介给所选成员；每位成员回复一次。':'本条仅保存文字，不调用模型。';submit.title=blocked.length?'先连接或取消选择暂不可用的成员':ids.length?'发送给 '+names.join('、'):'只保存文字';
       const hint=form.querySelector('[data-connection-hint]');
-      hint.innerHTML=blocked.length?'<span>'+blocked.map(m=>esc(m.name+'：'+YanxuChat.memberStatus(state,m).label)).join('；')+'</span>'+button('connection-settings','连接与设置')+'<small>也可以在 ＠ 中取消选择这些成员，或仅保存文字。</small>':ids.length?'<small>发送后选定成员各回复一次；外部助手的实际响应以收到回复为准。</small>':'<small>本条仅保存文字，不调用模型。</small>';
+      hint.innerHTML=blocked.length?'<span>'+blocked.map(m=>esc(m.name+'：'+YanxuChat.memberStatus(state,m).label)).join('；')+'</span>'+button('connection-settings','连接与设置'):members.some(m=>m.engine!=='codex')?'<small>外部助手的实际响应以收到回复为准。</small>':'';
       bind(hint);
     };update();form.querySelector('.chat-send-options').ontoggle=()=>YanxuChat.capture(host,origin.project,origin.id);form.oninput=()=>YanxuChat.capture(host,origin.project,origin.id);form.onchange=()=>{update();YanxuChat.capture(host,origin.project,origin.id);};
     form.querySelector('textarea').onkeydown=e=>{if(YanxuChat.shouldSend(e)){e.preventDefault();if(!form.querySelector('[type=submit]').disabled)form.requestSubmit();}};
-    form.onsubmit=async e=>{e.preventDefault();const submit=form.querySelector('[type=submit]');if(submit.disabled)return;submit.disabled=true;const frozen=payload();const intent={chat:true,valid:()=>aiProjectId===origin.project&&aiView===origin.view&&eco.tab==='groups'&&eco.selection===origin.id&&form.isConnected&&payload()===frozen};eco.pendingIntent=intent;
-      const fd=new FormData(form);YanxuChat.capture(host,origin.project,origin.id);try{await mutate('group.send',{id:group.id,expected_rev:group.object_rev,content:fd.get('content'),reply_profile_ids:fd.getAll('reply'),history_count:Number(fd.get('history')),consent:'group-chat-message-v1'});YanxuChat.clear(origin.project,origin.id);chatRendered=null;render();}
-      catch(error){const target=form.isConnected?form:host.querySelector('#chatComposer');if(target)target.querySelector('.eco-form-error').textContent=error.message;else{domain.error=error.message;render();}}
-      finally{if(eco.pendingIntent===intent)eco.pendingIntent=null;if(submit.isConnected)update();}
+    form.onsubmit=async e=>{e.preventDefault();const submit=form.querySelector('[type=submit]');if(submitting||submit.disabled)return;submitting=true;submit.disabled=true;const frozen=payload();const intent={chat:true,valid:()=>sameConversation()&&form.isConnected&&payload()===frozen};eco.pendingIntent=intent;
+      const fd=new FormData(form);YanxuChat.capture(host,origin.project,origin.id);try{await mutate('group.send',{id:group.id,expected_rev:group.object_rev,content:fd.get('content'),reply_profile_ids:fd.getAll('reply'),history_count:Number(fd.get('history')),consent:'group-chat-message-v1'});YanxuChat.clear(origin.project,origin.id,fd.get('content'));if(sameConversation()){chatRendered=null;render();}}
+      catch(error){if(!sameConversation())return;const target=form.isConnected?form:host.querySelector('#chatComposer');if(target)target.querySelector('.eco-form-error').textContent=error.message;else{domain.error=error.message;render();}}
+      finally{if(eco.pendingIntent===intent)eco.pendingIntent=null;submitting=false;if(submit.isConnected)update();}
     };
   }
   function groupForm(existing){
     const state=safeState(),members=existing?.members||[];
-    dialog(existing?'群聊设置':'创建群聊',input('name','群聊名称',existing?.name||'新群聊','required maxlength="80"')+'<p class="eco-muted">选择已配置的模型或 Agent，最多 6 位。可以先建群，再邀请成员。</p><div class="chat-member-choices">'+state.profiles.map(p=>'<label><input type="checkbox" name="member" value="'+esc(p.id)+'" '+(members.some(m=>m.id===p.id)?'checked':'')+'><span><strong>'+esc(p.name)+'</strong><small>'+esc(p.model||'外部 Agent')+'</small></span></label>').join('')+'</div>'+(!state.profiles.length?'<p>暂无模型配置。建群后在详情中点击“配置模型 / Agent”。</p>':''),'保存',async form=>{const item=await mutate(existing?'group.update':'group.create',{id:existing?.id,name:form.get('name'),profile_ids:form.getAll('member'),...(existing?{expected_rev:existing.object_rev}:{})});eco.tab='groups';eco.selection=item.id;render();});
+    dialog(existing?'群聊设置':'创建群聊',input('name','群聊名称',existing?.name||'新群聊','required maxlength="80"')+'<p class="eco-muted">选择已配置的模型或 Agent，最多 6 位。可以先建群，再邀请成员。</p><div class="chat-member-choices">'+state.profiles.map(p=>'<label><input type="checkbox" name="member" value="'+esc(p.id)+'" '+(members.some(m=>m.id===p.id)?'checked':'')+'><span><strong>'+esc(p.name)+'</strong><small>'+esc(p.model||'外部 Agent')+'</small></span></label>').join('')+'</div>'+(!state.profiles.length?'<p>暂无模型配置。建群后在详情中点击“配置模型 / Agent”。</p>':''),'保存',async (form,node,current)=>{const item=await mutate(existing?'group.update':'group.create',{id:existing?.id,name:form.get('name'),profile_ids:form.getAll('member'),...(existing?{expected_rev:existing.object_rev}:{})});if(!current())return;eco.tab='groups';eco.selection=item.id;render();});
   }
 
   async function pushChoices(state){
@@ -174,7 +187,7 @@
     const state=safeState(),group=state.groups.find(g=>g.id===incoming?.group_id);
     if(!group||incoming.room_id||!['unread','seen'].includes(incoming.status))throw Error('此发现已处理或目标群不可用，请重新查看');
     const source=incoming.source_change;
-    const modal=dialog('讨论雷达发现', '<p>送到群聊：'+esc(group.name)+'</p><h3>'+esc(source.title)+'</h3><details><summary>查看来源变化</summary><h4>新增或修改</h4><pre>'+esc(source.added||'无')+'</pre><h4>移除或修改前</h4><pre>'+esc(source.removed||'无')+'</pre></details>'+(source.diff_truncated?'<p>摘录已截断，请先核对原来源。</p>':'')+area('content','讨论的问题',source.brief?.question||'这次变化对我们有什么影响？','required maxlength="4000"')+'<fieldset><legend>回复成员</legend>'+group.members.map(m=>'<label class="eco-check"><input name="reply" type="checkbox" value="'+esc(m.id)+'" checked>'+esc(m.name)+'</label>').join('')+'</fieldset>'+select('history','带入群聊历史',[['0','不带入'],['5','最近5条'],['10','最近10条'],['20','最近20条']],'5')+'<label class="eco-check"><input type="checkbox" name="confirm" required>确认发送来源变化、上述问题、选定群历史与空间简介；每位选定成员回复一次</label>','确认并开始',async form=>{const ids=form.getAll('reply');const readiness=incomingReplyReadiness(state,group,ids);if(!readiness.allowed)throw Error(readiness.message);await mutate('group.send',{id:group.id,expected_rev:group.object_rev,inbox_id:incoming.id,inbox_expected_rev:incoming.object_rev,source_version:incoming.source_version,content:form.get('content'),reply_profile_ids:ids,history_count:Number(form.get('history')),consent:form.get('confirm')==='on'?'group-chat-message-v1':''});eco.tab='groups';eco.selection=group.id;render();});
+    const modal=dialog('讨论雷达发现', '<p>送到群聊：'+esc(group.name)+'</p><h3>'+esc(source.title)+'</h3><details><summary>查看来源变化</summary><h4>新增或修改</h4><pre>'+esc(source.added||'无')+'</pre><h4>移除或修改前</h4><pre>'+esc(source.removed||'无')+'</pre></details>'+(source.diff_truncated?'<p>摘录已截断，请先核对原来源。</p>':'')+area('content','讨论的问题',source.brief?.question||'这次变化对我们有什么影响？','required maxlength="4000"')+'<fieldset><legend>回复成员</legend>'+group.members.map(m=>'<label class="eco-check"><input name="reply" type="checkbox" value="'+esc(m.id)+'" checked>'+esc(m.name)+'</label>').join('')+'</fieldset>'+select('history','带入群聊历史',[['0','不带入'],['5','最近5条'],['10','最近10条'],['20','最近20条']],'5')+'<label class="eco-check"><input type="checkbox" name="confirm" required>确认发送来源变化、上述问题、选定群历史与空间简介；每位选定成员回复一次</label>','确认并开始',async (form,node,current)=>{const ids=form.getAll('reply');const readiness=incomingReplyReadiness(state,group,ids);if(!readiness.allowed)throw Error(readiness.message);await mutate('group.send',{id:group.id,expected_rev:group.object_rev,inbox_id:incoming.id,inbox_expected_rev:incoming.object_rev,source_version:incoming.source_version,content:form.get('content'),reply_profile_ids:ids,history_count:Number(form.get('history')),consent:form.get('confirm')==='on'?'group-chat-message-v1':''});if(!current())return;eco.tab='groups';eco.selection=group.id;render();});
     const hint=document.createElement('p');hint.className='eco-reply-readiness';hint.setAttribute('role','status');modal.querySelector('fieldset').after(hint);
     const update=()=>{const ids=[...modal.querySelectorAll('[name=reply]:checked')].map(n=>n.value),readiness=incomingReplyReadiness(state,group,ids);hint.textContent=readiness.message;modal.querySelector('[type=submit]').disabled=!readiness.allowed;};
     modal.querySelectorAll('[name=reply]').forEach(n=>n.addEventListener('change',update));update();
@@ -182,13 +195,15 @@
   function radarReader(state,alert){
     if(!alert)return button('radar-close-reader','‹ 返回发现','data-radar-back')+empty('暂无可阅读的发现','请选择其他来源或调整筛选。首次检查建立基线，检查失败或尚未检查时无法判断是否有变化。');
         let html='<div class="eco-heading"><div><h2>'+esc(alert.title)+'</h2><p>'+age(alert.created_at)+' · '+esc(labels[alert.status])+'</p></div></div><p class="eco-question">'+esc(alert.note)+'</p><div class="eco-diff"><section><h3>新增或修改后的文字</h3><pre>'+esc(alert.added||'没有新增文字')+'</pre></section><section><h3>移除或修改前的文字</h3><pre>'+esc(alert.removed||'没有移除文字')+'</pre></section></div>';
-        html+='<div class="eco-actions eco-next-step">'+button('push-alert','推送到收件箱或群聊','class="eco-primary"')+button('adopt-alert',alert.adopted_id?'已加入项目':'建立复核任务',alert.adopted_id?'disabled':'')+'</div>';
-        const pending=(alert.deliveries||[]).filter(i=>i.status==='unread'||i.status==='seen').at(-1);
-        if(pending)html+='<a class="radar-delivery-next" href="/apps/discussion/?project='+encodeURIComponent(pending.target)+'&inbox=1&item='+encodeURIComponent(pending.id)+'">打开待讨论项 →<small>确认后才会启动模型</small></a>';
+        const deliveries=alert.deliveries||[],pending=deliveries.filter(i=>i.status==='unread'||i.status==='seen').at(-1);
+        html+='<section class="radar-next-action" aria-label="这条发现的下一步"><div class="radar-action-heading"><span class="radar-step-label">下一步</span><span class="radar-delivery-status">'+(pending?'已送达 · 等待讨论':deliveries.length?'已保留送达记录':'尚未推送')+'</span></div>';
+        if(pending)html+='<a class="eco-button eco-primary radar-delivery-next" href="/apps/discussion/?project='+encodeURIComponent(pending.target)+'&inbox=1&item='+encodeURIComponent(pending.id)+'"><span>打开待讨论项</span><span aria-hidden="true">→</span></a><p class="radar-action-consent">确认问题、回复成员与发送范围后，才会启动模型。</p>';
+        else html+=button('push-alert',deliveries.length?'推送到其他收件箱或群聊':'推送到收件箱或群聊','class="eco-primary"')+'<p class="radar-action-consent">推送只创建待讨论项，不启动模型。</p>';
+        html+='<div class="radar-secondary-actions">'+(pending?button('push-alert','推送到其他位置'):'')+button('adopt-alert',alert.adopted_id?'已加入项目':'建立复核任务',alert.adopted_id?'disabled':'')+'</div></section>';
         if(alert.structured_changes)html+='<section><h3>条目变化</h3>'+[['added','新增'],['updated','更新'],['removed','移除']].map(([key,label])=>'<h4>'+label+' · '+alert.structured_changes[key].length+'</h4>'+alert.structured_changes[key].map(entry=>'<p><strong>'+esc(entry.title||entry.id)+'</strong><br>'+esc(entry.summary)+'<br><small>'+esc(entry.date)+' · '+esc(entry.url)+'</small></p>').join('')).join('')+'<small>'+esc(alert.structured_changes.coverage)+'</small></section>';
         if(alert.brief)html+='<section class="review-brief"><h3>'+esc(alert.brief.question)+'</h3><p>'+esc(alert.brief.relevance)+'</p><p class="eco-muted">'+esc(alert.brief.basis)+'</p>'+alert.brief.affected_decisions.map(d=>'<p><strong>待复核：'+esc(d.title)+'</strong><br>'+esc(d.reason)+'</p>').join('')+'<p>'+esc(alert.brief.next_step)+'</p><small>'+esc(alert.brief.coverage)+'</small></section>';
         if(alert.diff_truncated) html+='<p class="eco-notice">当前差异摘录超过展示上限，部分内容未显示。来源版本哈希与差异摘录已保存。</p>';
-    return '<div class="radar-reader-top">'+button('radar-close-reader','‹ 返回发现','data-radar-back')+'<small>'+esc(state.watches.find(w=>w.id===alert.watch_id)?.name||'来源已移除')+'</small></div>'+html+'<details class="radar-source-details"><summary>来源信息与送达记录</summary><p><a href="'+esc(alert.url)+'" target="_blank" rel="noopener noreferrer">打开原来源 ↗</a></p>'+ (alert.deliveries||[]).map(i=>'<p><a href="/apps/discussion/?project='+encodeURIComponent(i.target)+'&inbox=1&item='+encodeURIComponent(i.id)+'">查看已送达记录 →</a></p>').join('')+'<small>来源版本：'+esc(alert.before_hash.slice(0,12))+' → '+esc(alert.after_hash.slice(0,12))+'</small></details><div class="radar-reader-garden" aria-hidden="true"></div>';
+    return '<div class="radar-reader-top">'+button('radar-close-reader','‹ 返回发现','data-radar-back')+'<small>来源 · '+esc(state.watches.find(w=>w.id===alert.watch_id)?.name||'来源已移除')+'</small></div>'+html+'<details class="radar-source-details"><summary>来源信息与送达记录</summary><p><a href="'+esc(alert.url)+'" target="_blank" rel="noopener noreferrer">打开原来源 ↗</a></p>'+ (alert.deliveries||[]).map(i=>'<p><a href="/apps/discussion/?project='+encodeURIComponent(i.target)+'&inbox=1&item='+encodeURIComponent(i.id)+'">查看已送达记录 →</a></p>').join('')+'<small>来源版本：'+esc(alert.before_hash.slice(0,12))+' → '+esc(alert.after_hash.slice(0,12))+'</small></details><div class="radar-reader-garden" aria-hidden="true"></div>';
   }
   function radarLayout(state){
     const sources=(state.observations||[]).flatMap(o=>o.sources),alerts=radarFilteredAlerts(state);
@@ -248,7 +263,18 @@
     let modal=$('ecoDialog');if(!modal){modal=document.createElement('dialog');modal.id='ecoDialog';modal.className='eco-dialog';document.body.append(modal);}
     modal.innerHTML='<h2>'+title+'</h2><form>'+body+'<div class="eco-form-error" role="alert"></div><div class="eco-actions">'+(submitLabel?'<button class="eco-button eco-primary" type="submit">'+submitLabel+'</button>':'')+'<button class="eco-button" type="button" data-cancel>关闭</button></div></form>';
     modal.querySelector('[data-cancel]').onclick=()=>modal.close();
-    modal.querySelector('form').onsubmit=async e=>{e.preventDefault();const submit=e.submitter;submit.disabled=true;const error=modal.querySelector('.eco-form-error');error.textContent='';const intent={...origin,modal,form:e.target,payload:JSON.stringify([...new FormData(e.target)])};eco.pendingIntent=intent;try{await callback(new FormData(e.target),e.target);if(modal.querySelector('form')===intent.form)modal.close();}catch(err){error.textContent=err.message;}finally{if(eco.pendingIntent===intent)eco.pendingIntent=null;submit.disabled=false;}};
+    const form=modal.querySelector('form');let submitting=false;
+    const current=()=>modal.open&&modal.querySelector('form')===form&&aiProjectId===origin.project&&aiView===origin.view;
+    form.onsubmit=async e=>{
+      e.preventDefault();const submit=e.submitter||form.querySelector('[type=submit]');
+      if(submitting||!callback||!submit||submit.disabled||!current())return;
+      submitting=true;submit.disabled=true;
+      const error=modal.querySelector('.eco-form-error');error.textContent='';
+      const intent={...origin,modal,form,payload:JSON.stringify([...new FormData(form)])};eco.pendingIntent=intent;
+      try{await callback(new FormData(form),form,current);if(modal.querySelector('form')===form)modal.close();}
+      catch(err){if(current())error.textContent=err.message;}
+      finally{if(eco.pendingIntent===intent)eco.pendingIntent=null;submitting=false;submit.disabled=false;}
+    };
     if(!modal.open)modal.showModal();return modal;
   }
   const input=(name,label,value='',extra='')=>'<label class="eco-field">'+label+'<input name="'+name+'" value="'+esc(value)+'" '+extra+'></label>';
@@ -301,9 +327,9 @@
   function newReview(alert=null,incoming=null){
     const state=safeState();
     const material=alert?'新增或修改：\n'+(alert.added||'无')+'\n移除：\n'+(alert.removed||'无'):'';
-    const form=dialog('评审一个方案',input('title','评审标题',alert?'评估：'+alert.title:'','required maxlength="200"')+area('question','现在要决定什么？',alert?.brief?.question||'','required maxlength="4000"')+area('constraints','有哪些不能违反的条件？','','maxlength="4000"')+input('material_title','材料标题',alert?alert.title:'','required maxlength="200"')+input('reference','材料来源或说明',alert?.url||'','maxlength="2000"')+area('material','本次选取的材料正文或摘录',material,'required maxlength="16000"')+'<label class="eco-field">或选择一份文本材料<input type="file" name="material_file" accept=".txt,.md,text/plain,text/markdown"></label><details><summary>执行设置 · 一次评审</summary>'+select('profile','执行器',[['','稍后选择'],...state.profiles.map(p=>[p.id,p.name+' · '+(p.model||'外部 Agent')])],'')+'<p class="eco-muted">基线使用一个执行器、一轮、一次配额。角色和模型在执行器设置中配置；保存不会调用模型。</p></details>'+(!state.profiles.length?'<p class="eco-notice">可先保存问题和材料，开始前再选择执行器。</p>':'')+select('review_of','复核已有判断（可选）',[['','一次新评审'],...state.context.decisions.map(d=>[d.id,d.title||d.question])],'')+reviewRecordFields(state)+'<p class="eco-muted">材料将在本机保存为本次快照，模型发送仍需预览确认。这里只保存选取的材料，不读取其他文件。</p>','保存评审草稿',async values=>{
+    const form=dialog('评审一个方案',input('title','评审标题',alert?'评估：'+alert.title:'','required maxlength="200"')+area('question','现在要决定什么？',alert?.brief?.question||'','required maxlength="4000"')+area('constraints','有哪些不能违反的条件？','','maxlength="4000"')+input('material_title','材料标题',alert?alert.title:'','required maxlength="200"')+input('reference','材料来源或说明',alert?.url||'','maxlength="2000"')+area('material','本次选取的材料正文或摘录',material,'required maxlength="16000"')+'<label class="eco-field">或选择一份文本材料<input type="file" name="material_file" accept=".txt,.md,text/plain,text/markdown"></label><details><summary>执行设置 · 一次评审</summary>'+select('profile','执行器',[['','稍后选择'],...state.profiles.map(p=>[p.id,p.name+' · '+(p.model||'外部 Agent')])],'')+'<p class="eco-muted">基线使用一个执行器、一轮、一次配额。角色和模型在执行器设置中配置；保存不会调用模型。</p></details>'+(!state.profiles.length?'<p class="eco-notice">可先保存问题和材料，开始前再选择执行器。</p>':'')+select('review_of','复核已有判断（可选）',[['','一次新评审'],...state.context.decisions.map(d=>[d.id,d.title||d.question])],'')+reviewRecordFields(state)+'<p class="eco-muted">材料将在本机保存为本次快照，模型发送仍需预览确认。这里只保存选取的材料，不读取其他文件。</p>','保存评审草稿',async (values,node,current)=>{
       const room=await mutate('review.create',{title:values.get('title'),question:values.get('question'),constraints:values.get('constraints'),materials:[{title:values.get('material_title'),content:values.get('material'),reference:values.get('reference')}],profile_ids:values.get('profile')?[values.get('profile')]:[],max_rounds:1,max_calls:1,inbox_id:incoming?.id||'',alert_id:incoming?'':alert?.id||'',review_of:values.get('review_of')||'',context_selection:Object.fromEntries(['tasks','decisions','results'].map(key=>[key,values.getAll('context_'+key)]))});
-      eco.selection=room.id;eco.tab='rooms';aiView='discussion';if(typeof appSetSection==='function')appSetSection(false);render();
+      if(!current())return;eco.selection=room.id;eco.tab='rooms';aiView='discussion';if(typeof appSetSection==='function')appSetSection(false);render();
     });
     form.querySelector('[name=material_file]').onchange=async event=>{
       const file=event.target.files[0];if(!file)return;
@@ -320,14 +346,14 @@
   function historicalReview(room){
     const state=safeState(),keys=['materials','tasks','decisions','results'];
     const choices=keys.map(key=>'<fieldset><legend>'+({materials:'历史材料',tasks:'历史任务',decisions:'历史判断',results:'历史结果'}[key])+'</legend>'+(key==='materials'?(room.materials||[]):(room.context[key]||[])).map(row=>'<label class="eco-check"><input type="checkbox" name="history_'+key+'" value="'+esc(row.id)+'">'+esc(row.title||row.summary||row.id)+'</label>').join('')+'</fieldset>').join('');
-    dialog('使用历史快照建立评审',input('title','评审标题',('复核：'+room.title).slice(0,200),'required maxlength="200"')+area('question','现在要决定什么？',room.question,'required maxlength="4000"')+area('constraints','本次约束',room.constraints||'','maxlength="4000"')+area('reason','为什么仍要使用这些历史快照？','','required maxlength="2000"')+'<p class="eco-muted">请选择 1–12 份原评审保存的快照，默认不选。历史记录成为固定材料，不代表当前状态。原评审已耗 '+room.used_calls+' / '+room.max_calls+'，本次另存草稿，不重置原消耗。</p>'+choices+select('profile','本次执行器',[['','稍后选择'],...state.profiles.map(p=>[p.id,p.name+' · '+(p.model||'外部 Agent')])],'')+select('review_of','复核当前判断（可选）',[['','不绑定当前判断'],...state.context.decisions.map(d=>[d.id,d.title||d.question])],'')+reviewRecordFields(state)+'<p class="eco-muted">保存当前项目信息与选定当前记录；预览确认后才能运行一次评审。</p>','保存历史材料评审',async values=>{
+    dialog('使用历史快照建立评审',input('title','评审标题',('复核：'+room.title).slice(0,200),'required maxlength="200"')+area('question','现在要决定什么？',room.question,'required maxlength="4000"')+area('constraints','本次约束',room.constraints||'','maxlength="4000"')+area('reason','为什么仍要使用这些历史快照？','','required maxlength="2000"')+'<p class="eco-muted">请选择 1–12 份原评审保存的快照，默认不选。历史记录成为固定材料，不代表当前状态。原评审已耗 '+room.used_calls+' / '+room.max_calls+'，本次另存草稿，不重置原消耗。</p>'+choices+select('profile','本次执行器',[['','稍后选择'],...state.profiles.map(p=>[p.id,p.name+' · '+(p.model||'外部 Agent')])],'')+select('review_of','复核当前判断（可选）',[['','不绑定当前判断'],...state.context.decisions.map(d=>[d.id,d.title||d.question])],'')+reviewRecordFields(state)+'<p class="eco-muted">保存当前项目信息与选定当前记录；预览确认后才能运行一次评审。</p>','保存历史材料评审',async (values,node,current)=>{
       const created=await mutate('review.create',{title:values.get('title'),question:values.get('question'),constraints:values.get('constraints'),profile_ids:values.get('profile')?[values.get('profile')]:[],max_rounds:1,max_calls:1,review_of:values.get('review_of')||'',context_selection:Object.fromEntries(['tasks','decisions','results'].map(key=>[key,values.getAll('context_'+key)])),history_source:{room_id:room.id,expected_rev:room.object_rev||0,context_hash:room.context.context_hash,reason:values.get('reason'),selection:Object.fromEntries(keys.map(key=>[key,values.getAll('history_'+key)]))}});
-      eco.selection=created.id;eco.tab='rooms';aiView='discussion';if(typeof appSetSection==='function')appSetSection(false);render();
+      if(!current())return;eco.selection=created.id;eco.tab='rooms';aiView='discussion';if(typeof appSetSection==='function')appSetSection(false);render();
     });
   }
   function newRoom(alert,incoming){
     const state=safeState();if(!state.profiles.length){profiles();return;}
-    const modal=dialog('新建讨论',input('title','讨论主题',alert?'复核：'+alert.title:'','required maxlength="200"')+area('question','这次需要解决什么问题？',alert?'这处来源变化可能影响项目中的哪些判断？请说明依据与仍需核实的内容。':'','required maxlength="4000"')+'<fieldset class="eco-checks"><legend>参与角色</legend>'+state.profiles.map((p,i)=>'<label class="eco-check"><input type="checkbox" name="profile" value="'+esc(p.id)+'" '+(i<3?'checked':'')+'>'+esc(p.name)+'</label>').join('')+'</fieldset><div class="eco-field-pair">'+input('rounds','最多轮次',2,'type="number" min="1" max="3" required')+input('calls','调用 / 回复配额',Math.min(3,state.profiles.length)*2,'type="number" min="1" max="18" required')+'</div><p class="eco-muted">创建后可以先查看项目上下文，确认后再开始。每轮完成后由你决定是否继续。</p>','创建讨论',async form=>{const room=await mutate('room.create',{title:form.get('title'),question:form.get('question'),profile_ids:form.getAll('profile'),max_rounds:Number(form.get('rounds')),max_calls:Number(form.get('calls')),alert_id:incoming?'':alert?.id||'',inbox_id:incoming?.id||''});eco.selection=room.id;eco.tab='rooms';aiView='discussion';if(typeof appSetSection==='function')appSetSection(false);render();});
+    const modal=dialog('新建讨论',input('title','讨论主题',alert?'复核：'+alert.title:'','required maxlength="200"')+area('question','这次需要解决什么问题？',alert?'这处来源变化可能影响项目中的哪些判断？请说明依据与仍需核实的内容。':'','required maxlength="4000"')+'<fieldset class="eco-checks"><legend>参与角色</legend>'+state.profiles.map((p,i)=>'<label class="eco-check"><input type="checkbox" name="profile" value="'+esc(p.id)+'" '+(i<3?'checked':'')+'>'+esc(p.name)+'</label>').join('')+'</fieldset><div class="eco-field-pair">'+input('rounds','最多轮次',2,'type="number" min="1" max="3" required')+input('calls','调用 / 回复配额',Math.min(3,state.profiles.length)*2,'type="number" min="1" max="18" required')+'</div><p class="eco-muted">创建后可以先查看项目上下文，确认后再开始。每轮完成后由你决定是否继续。</p>','创建讨论',async (form,node,current)=>{const room=await mutate('room.create',{title:form.get('title'),question:form.get('question'),profile_ids:form.getAll('profile'),max_rounds:Number(form.get('rounds')),max_calls:Number(form.get('calls')),alert_id:incoming?'':alert?.id||'',inbox_id:incoming?.id||''});if(!current())return;eco.selection=room.id;eco.tab='rooms';aiView='discussion';if(typeof appSetSection==='function')appSetSection(false);render();});
     modal.querySelectorAll('[name=profile],[name=rounds]').forEach(node=>node.addEventListener('change',()=>{modal.querySelector('[name=calls]').value=modal.querySelectorAll('[name=profile]:checked').length*Number(modal.querySelector('[name=rounds]').value);}));
   }
   function importSourcePack(){
@@ -369,7 +395,7 @@
   function adopt(item,kind){
     const personal=!!safeState().context.project.app_owner;
     const destination=personal?select('destination','保存到哪里',[[aiProjectId,'当前个人空间'],...data.projects.filter(p=>!p.personal&&p.id!==aiProjectId).map(p=>[p.id,p.name+' · 续芽项目'])],aiProjectId):'';
-    dialog(kind==='room'?'采纳讨论内容':'建立复核任务',destination+select('target','加入项目的方式',kind==='room'?[['task','任务'],['decision','决策']]:[['task','复核任务']],'task')+input('title','标题',kind==='room'?item.title:'复核：'+item.title,'required maxlength="200"')+area('rationale','采纳理由、适用条件与仍需核实的内容','','required maxlength="4000"')+'<p class="eco-muted">保存你的判断与原记录版本。选择续芽项目可保存待执行任务或决策；保留你的采纳理由与来源版本。</p>','确认保存',async form=>{const target=form.get('destination')||aiProjectId;let version=safeState().project_version;if(target!==aiProjectId){const preview=await client.readProject(target);version=preview.project_version;}await mutate(kind+'.adopt',{id:item.id,expected_rev:item.object_rev||0,brief_revision:item.brief?.revision,target:form.get('target'),title:form.get('title'),rationale:form.get('rationale'),target_project_id:target,target_project_version:version});});
+    dialog(kind==='room'?'采纳讨论内容':'建立复核任务',destination+select('target','加入项目的方式',kind==='room'?[['task','任务'],['decision','决策']]:[['task','复核任务']],'task')+input('title','标题',kind==='room'?item.title:'复核：'+item.title,'required maxlength="200"')+area('rationale','采纳理由、适用条件与仍需核实的内容','','required maxlength="4000"')+'<p class="eco-muted">保存你的判断与原记录版本。选择续芽项目可保存待执行任务或决策；保留你的采纳理由与来源版本。</p>','确认保存',async form=>mutate(kind+'.adopt',async()=>{const target=form.get('destination')||aiProjectId;let version=safeState().project_version;if(target!==aiProjectId){const preview=await client.readProject(target);version=preview.project_version;}return {id:item.id,expected_rev:item.object_rev||0,brief_revision:item.brief?.revision,target:form.get('target'),title:form.get('title'),rationale:form.get('rationale'),target_project_id:target,target_project_version:version};}));
   }
   function preview(room){
     const send={project:room.context,question:room.question,constraints:room.constraints||'',materials:room.materials||[],review_of:room.review_of||null,previous_messages:room.messages,source_change:room.source_change||null,roles:room.participants.map(p=>({name:p.name,model:p.model,engine:p.engine,instructions:p.instructions}))};

@@ -5,7 +5,7 @@ const group={id:'g',name:'<群聊>',members:[{id:'a',name:'模型 A',model:'A'},
 const state={project_id:'p',groups:[group]},button=(a,l)=>`<button data-eco="${a}">${l}</button>`;
 let html=chat.render(state,group,'',esc,()=>'',button);assert(html.includes('&lt;script&gt;bad&lt;/script&gt;'));assert(!html.includes('<script>'));assert(html.includes('模型 B'));assert(html.includes('chat-send-options'));assert(!html.includes('累计模型调用'));assert(!html.includes('AI 回复，待核实'));assert(html.includes('查看完整回复与模型信息'));assert(html.includes('chat-bubble'));assert(html.includes('chatComposer'));assert(html.includes('最多')===false);
 const d=chat.draft('p',group);d.text='未发草稿';d.recipients=['b'];d.history='5';d.optionsOpen=true;html=chat.render(state,group,'',esc,()=>'',button);assert(html.includes('未发草稿'));assert(html.includes('chat-send-options" open'));assert(html.includes('value="b" checked'));assert(!html.includes('value="a" checked'));
-chat.clear('p','g');assert.equal(d.text,'');assert.equal(d.recipients.join(','),'b');assert.equal(d.history,'5');assert.notEqual(chat.draft('another',group),d);
+chat.clear('p','g','an older submitted message');assert.equal(d.text,'未发草稿','Late acknowledgment preserves newer typing');chat.clear('p','g','未发草稿');assert.equal(d.text,'');assert.equal(d.recipients.join(','),'b');assert.equal(d.history,'5');assert.notEqual(chat.draft('another',group),d);
 assert(chat.shouldSend({key:'Enter'}));for(const e of [{key:'Enter',shiftKey:true},{key:'Enter',isComposing:true},{key:'Enter',keyCode:229},{key:'a'}])assert(!chat.shouldSend(e),'IME and newline must not send');
 assert(chat.inspector(group,esc,button).includes('累计模型调用 2 次'));
 // Conversation previews use the same human status as the feed; raw failure and

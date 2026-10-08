@@ -1,6 +1,14 @@
 /* Standalone app shell. The shared discussion/radar components never load Yanxu's UI. */
 let aiView=APP,aiProjectId='',aiInspectorOpen=innerWidth>=1080,data={projects:[]};
 const $=id=>document.getElementById(id);
+function appApplyTheme(theme){document.documentElement.dataset.theme=theme==='dark'?'dark':'light';}
+try{appApplyTheme(localStorage.getItem('rd-theme'));}catch(_){appApplyTheme('light');}
+window.addEventListener('storage',event=>{if(event.key==='rd-theme')appApplyTheme(event.newValue);});
+function appToggleTheme(){
+ const next=document.documentElement.dataset.theme==='dark'?'light':'dark';appApplyTheme(next);
+ try{localStorage.setItem('rd-theme',next);}catch(_){}
+ const button=document.querySelector('[data-theme-toggle]');if(button)button.textContent=next==='dark'?'使用浅色外观':'使用深色外观';
+}
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 async function api(path,body){
  const response=await fetch('/api/'+path,{method:body?'POST':'GET',headers:{Authorization:'Bearer '+APP_TOKEN,...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined});
@@ -35,7 +43,8 @@ function settingsDialog(title,content){
 }
 async function appSettings(){
  const status=await api('agent-connection?project_id='+encodeURIComponent(aiProjectId)),space=aiProjectId;
- const d=settingsDialog('连接与设置','<ol class="eco-setup-steps"><li>连接本机 Codex，并完成账号登录。</li><li>在聊天信息中管理模型与助手，选择接口提供的模型。</li><li>把配置好的成员加入群聊，再选择谁来回复。</li></ol><p class="eco-muted">当前空间：'+esc(data.projects.find(p=>p.id===space)?.name)+ '。角色由讨论室配置；雷达推送和收件箱不调用模型。</p><h3>共享 Codex 连接</h3><p>'+esc(status.connected?(status.authenticated?'已连接并登录':'已连接，尚未登录'):'未连接')+'</p><button class="eco-button" type="button" data-connection>'+(status.enabled?'暂停连接':'连接 Codex')+'</button><button class="eco-button" type="button" data-login>浏览器登录</button><details><summary>外部助手（高级接入）</summary><p class="eco-muted">支持能使用 MCP 的外部 Agent。配置使用本空间提出建议的权限，生成后需在客户端注册并完成握手。</p><label class="eco-field">连接名称<input name="agentName" maxlength="80" placeholder="例如：外部核查者"></label><button class="eco-button" type="button" data-agent>生成空间连接</button></details>');
+ const d=settingsDialog('连接与设置','<h3>外观</h3><button class="eco-button" type="button" data-theme-toggle>'+(document.documentElement.dataset.theme==='dark'?'使用浅色外观':'使用深色外观')+'</button><ol class="eco-setup-steps"><li>连接本机 Codex，并完成账号登录。</li><li>在聊天信息中管理模型与助手，选择接口提供的模型。</li><li>把配置好的成员加入群聊，再选择谁来回复。</li></ol><p class="eco-muted">当前空间：'+esc(data.projects.find(p=>p.id===space)?.name)+ '。角色由讨论室配置；雷达推送和收件箱不调用模型。</p><h3>共享 Codex 连接</h3><p>'+esc(status.connected?(status.authenticated?'已连接并登录':'已连接，尚未登录'):'未连接')+'</p><button class="eco-button" type="button" data-connection>'+(status.enabled?'暂停连接':'连接 Codex')+'</button><button class="eco-button" type="button" data-login>浏览器登录</button><details><summary>外部助手（高级接入）</summary><p class="eco-muted">支持能使用 MCP 的外部 Agent。配置使用本空间提出建议的权限，生成后需在客户端注册并完成握手。</p><label class="eco-field">连接名称<input name="agentName" maxlength="80" placeholder="例如：外部核查者"></label><button class="eco-button" type="button" data-agent>生成空间连接</button></details>');
+ d.querySelector('[data-theme-toggle]').onclick=appToggleTheme;
  const report=e=>{d.querySelector('[role=alert]').textContent=e.message;};
  d.querySelector('[data-connection]').onclick=()=>{
   const enabled=!status.enabled;
